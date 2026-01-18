@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>About Us - SANJU Store</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navigation.css">
+    
+    <style>
+        /* About Page Specific Styles */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 15px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2);
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .mission-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        
+        .mission-card {
+            padding: 2.5rem 2rem;
+            text-align: center;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 20px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            transition: transform 0.3s;
+        }
+        
+        .mission-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(99, 102, 241, 0.3);
+        }
+        
+        .mission-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-logo" data-action="go-home">
+            <span style="font-size: 1.8rem;">🛍️</span>
+            <span>SANJU STORE</span>
+        </div>
+        
+        <!-- Desktop Navigation -->
+        <div class="nav-links">
+            <div class="nav-item" data-page="home">
+                <i class="fas fa-home"></i> Home
+            </div>
+            <div class="nav-item" data-page="track">
+                <i class="fas fa-search-location"></i> Track Order
+            </div>
+            <div class="nav-item" data-page="contact">
+                <i class="fas fa-phone"></i> Contact
+            </div>
+            <div class="nav-item" data-page="faq">
+                <i class="fas fa-question-circle"></i> FAQ
+            </div>
+            <div class="nav-item active" data-page="about">
+                <i class="fas fa-info-circle"></i> About
+            </div>
+        </div>
+        
+        <!-- Hamburger Menu -->
+        <div class="hamburger" id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <h2>🛍️ SANJU STORE</h2>
+            <p>About Our Store</p>
+        </div>
+        
+        <div class="mobile-nav-items">
+            <div class="mobile-nav-item" data-page="home">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </div>
+            <div class="mobile-nav-item" data-page="track">
+                <i class="fas fa-search-location"></i>
+                <span>Track Order</span>
+            </div>
+            <div class="mobile-nav-item" data-page="contact">
+                <i class="fas fa-phone"></i>
+                <span>Contact Us</span>
+            </div>
+            <div class="mobile-nav-item" data-page="faq">
+                <i class="fas fa-question-circle"></i>
+                <span>FAQ</span>
+            </div>
+            <div class="mobile-nav-item active" data-page="about">
+                <i class="fas fa-info-circle"></i>
+                <span>About Us</span>
+            </div>
+            <div class="mobile-nav-item" data-page="privacy">
+                <i class="fas fa-shield-alt"></i>
+                <span>Privacy Policy</span>
+            </div>
+        </div>
+        
+        <div class="mobile-menu-footer">
+            <div class="mobile-social-links">
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-whatsapp"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+            </div>
+            <p style="text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.5);">
+                © 2026 SANJU STORE
+            </p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="hero-section">
+            <h1 class="hero-title">අපි ගැන</h1>
+            <p class="hero-subtitle">ඔබේ විශ්වාසනීය shopping partner</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">10K+</div>
+                <div class="stat-label">සතුටු පාරිභෝගිකයින්</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">5K+</div>
+                <div class="stat-label">භාණඩ විකුණන ලදී</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">99%</div>
+                <div class="stat-label">තෘප්තිය</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">සේවාව</div>
+            </div>
+        </div>
+
+        <div class="card-3d" style="margin: 3rem 0; padding: 3rem 2rem; text-align: center;">
+            <h2 style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--primary);">අපේ මෙහෙවර</h2>
+            <p style="font-size: 1.2rem; opacity: 0.9; line-height: 1.8; max-width: 800px; margin: 0 auto;">
+                SANJU Store හි අපගේ අරමුණ වන්නේ ශ්‍රී ලංකාවේ හොඳම online shopping අත්දැකීම ලබා දීමයි.
+                අපි ඔබට ඉහළ ගුණාත්මකභාවය, යුක්ති සහගත මිලකිරීම් සහ ඉක්මන් බෙදාහැරීම් සපයන අතර, 
+                ඔබේ විශ්වාසය සහ සතුට අපගේ ප්‍රධාන ප්‍රමුඛතාවය වේ.
+            </p>
+        </div>
+
+        <h2 style="text-align: center; font-size: 2rem; margin-bottom: 2rem; color: var(--primary);">
+            අපගේ වටිනාකම්
+        </h2>
+        
+        <div class="mission-grid">
+            <div class="mission-card">
+                <div class="mission-icon">🎯</div>
+                <h3 style="color: var(--primary);">Quality First</h3>
+                <p>ඉහළම ගුණාත්මකභාවයෙන් යුක්ත භාණඩ පමණක් අපි ඔබට පිරිනමන්නෙමු.</p>
+            </div>
+            
+            <div class="mission-card">
+                <div class="mission-icon">💰</div>
+                <h3 style="color: var(--primary);">Fair Pricing</h3>
+                <p>හොඳම value for money - අනවශ්‍ය අධික මිල නැත, හොඳම ගුණාත්මකභාවය පමණක්.</p>
+            </div>
+            
+            <div class="mission-card">
+                <div class="mission-icon">🚀</div>
+                <h3 style="color: var(--primary);">Fast Delivery</h3>
+                <p>ඉක්මන් සහ නිවැරදි delivery service - ඔබගේ නගරයට කිලෝමීටරයක් පවා ගණන් නොගනිමු.</p>
+            </div>
+            
+            <div class="mission-card">
+                <div class="mission-icon">💬</div>
+                <h3 style="color: var(--primary);">24/7 Support</h3>
+                <p>දවස පුරා customer support - ඕනෑම ප්‍රශ්නයකට අපි සූදානම්.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast"></div>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>SANJU STORE</h3>
+                <p>Your trusted shopping partner in Sri Lanka. We bring quality products to your doorstep with exceptional service.</p>
+                <div class="social-links">
+                    <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-whatsapp"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <div class="footer-links">
+                    <a href="index.html">Home</a>
+                    <a href="track.html">Track Order</a>
+                    <a href="about.html">About Us</a>
+                    <a href="contact.html">Contact</a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Customer Service</h3>
+                <div class="footer-links">
+                    <a href="faq.html">FAQ</a>
+                    <a href="#">Returns & Exchanges</a>
+                    <a href="privacy.html">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <p><i class="fas fa-envelope"></i> info@sanjustore.com</p>
+                <p><i class="fas fa-phone"></i> +94 77 123 4567</p>
+                <p><i class="fas fa-clock"></i> Mon-Sun: 9:00 AM - 9:00 PM</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p class="footer-text">
+                <span class="copyright">© 2026 <span class="brand">SANJU STORE</span>. All rights reserved.</span>
+                <span class="made-with">Made with <span class="heart">❤️</span> in <span class="brand">Sri Lanka</span></span>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="background.js"></script>
+    <script src="navigation.js" defer></script>
+    
+    <script>
+        // Highlight active page on load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.SANJU && window.SANJU.Navigation) {
+                window.SANJU.Navigation.refresh();
+            }
+        });
+    </script>
+</body>
+</html>

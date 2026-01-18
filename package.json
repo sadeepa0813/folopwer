@@ -1,0 +1,29 @@
+{
+  "name": "3d-store",
+  "version": "1.0.0",
+  "description": "3D E-Commerce Store with Supabase Backend",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 3000",
+    "dev": "npx http-server -p 3000",
+    "build": "echo 'No build required - static files'",
+    "deploy": "echo 'Deploy using Netlify, Vercel, or GitHub Pages'"
+  },
+  "keywords": [
+    "ecommerce",
+    "3d",
+    "store",
+    "supabase",
+    "shopping"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/3d-store"
+  },
+  "homepage": "https://yourusername.github.io/3d-store"
+}
