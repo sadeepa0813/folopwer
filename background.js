@@ -242,3 +242,235 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 });
+
+/**
+ * සත්සර මල් පැළ - Mobile Touch Fix
+ * Version: 2.0.0
+ */
+
+(function() {
+    'use strict';
+    
+    console.log('📱 සත්සර මල් පැළ: Mobile Touch Fix Initializing...');
+    
+    const TouchFix = {
+        isTouchDevice: function() {
+            return ('ontouchstart' in window) || 
+                   (navigator.maxTouchPoints > 0) || 
+                   (navigator.msMaxTouchPoints > 0);
+        },
+        
+        isIOS: function() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        },
+        
+        isAndroid: function() {
+            return /Android/.test(navigator.userAgent);
+        },
+        
+        init: function() {
+            if (!this.isTouchDevice()) {
+                console.log('🖱️ Desktop device detected, skipping touch fixes');
+                return;
+            }
+            
+            console.log('✅ Touch device detected, applying fixes...');
+            
+            this.addTouchClass();
+            this.fixViewportHeight();
+            this.preventDoubleTapZoom();
+            this.enhanceTouchTargets();
+            this.fixInputElements();
+            this.preventPullToRefresh();
+            this.fixIOSViewport();
+            this.addTouchFeedback();
+            
+            console.log('✅ Mobile touch fixes applied successfully');
+        },
+        
+        addTouchClass: function() {
+            document.documentElement.classList.add('is-touch-device');
+            
+            if (this.isIOS()) {
+                document.documentElement.classList.add('is-ios');
+            }
+            
+            if (this.isAndroid()) {
+                document.documentElement.classList.add('is-android');
+            }
+        },
+        
+        fixViewportHeight: function() {
+            // Fix for mobile viewport height
+            const setVH = () => {
+                const vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+                
+                // Set minimum height for mobile
+                document.documentElement.style.minHeight = `${window.innerHeight}px`;
+            };
+            
+            window.addEventListener('resize', setVH);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(setVH, 300);
+            });
+            
+            setVH();
+        },
+        
+        preventDoubleTapZoom: function() {
+            let lastTouchEnd = 0;
+            const delay = 300; // milliseconds
+            
+            document.addEventListener('touchend', function(e) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= delay) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, { passive: false });
+        },
+        
+        enhanceTouchTargets: function() {
+            const touchSelectors = [
+                'button',
+                '.btn-3d',
+                '.nav-item',
+                '.mobile-nav-item',
+                '.hamburger',
+                '.social-icon',
+                '.close-modal',
+                '.product-card',
+                '[data-action]',
+                '[role="button"]',
+                'a[href]'
+            ];
+            
+            // Set minimum touch target size (44px recommended by Apple)
+            touchSelectors.forEach(selector => {
+                document.querySelectorAll(selector).forEach(el => {
+                    // Skip if element already has a specific size
+                    if (el.offsetWidth >= 44 && el.offsetHeight >= 44) return;
+                    
+                    el.style.minHeight = '44px';
+                    el.style.minWidth = '44px';
+                    el.style.cursor = 'pointer';
+                    
+                    // Add touch feedback class
+                    el.classList.add('touch-target');
+                });
+            });
+        },
+        
+        fixInputElements: function() {
+            const inputs = document.querySelectorAll('input, textarea, select');
+            
+            inputs.forEach(input => {
+                // Prevent zoom on focus in iOS
+                if (this.isIOS()) {
+                    input.addEventListener('touchstart', function(e) {
+                        e.stopPropagation();
+                    }, { passive: true });
+                    
+                    // Ensure font size doesn't cause zoom
+                    input.style.fontSize = '16px';
+                }
+                
+                // Prevent auto correction and auto capitalization
+                input.setAttribute('autocorrect', 'off');
+                input.setAttribute('autocapitalize', 'none');
+                input.setAttribute('spellcheck', 'false');
+            });
+        },
+        
+        preventPullToRefresh: function() {
+            let startY = 0;
+            let isScrolling = false;
+            
+            document.addEventListener('touchstart', function(e) {
+                if (e.touches.length === 1) {
+                    startY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+            
+            document.addEventListener('touchmove', function(e) {
+                if (e.touches.length === 1 && !isScrolling) {
+                    const currentY = e.touches[0].clientY;
+                    const diffY = currentY - startY;
+                    
+                    // Prevent pull-to-refresh when at top
+                    if (window.scrollY <= 0 && diffY > 50) {
+                        e.preventDefault();
+                        isScrolling = true;
+                    }
+                }
+            }, { passive: false });
+            
+            document.addEventListener('touchend', function() {
+                setTimeout(() => {
+                    isScrolling = false;
+                }, 100);
+            });
+        },
+        
+        fixIOSViewport: function() {
+            if (!this.isIOS()) return;
+            
+            // Fix for iOS viewport scaling
+            let viewport = document.querySelector('meta[name="viewport"]');
+            if (viewport) {
+                viewport.content = viewport.content + ', maximum-scale=1.0';
+            }
+        },
+        
+        addTouchFeedback: function() {
+            // Add active state for touch feedback
+            document.addEventListener('touchstart', function(e) {
+                const target = e.target;
+                
+                // Find the nearest touch target
+                const touchTarget = target.closest('.touch-target, button, .btn-3d, .nav-item, .product-card');
+                
+                if (touchTarget) {
+                    touchTarget.classList.add('touch-active');
+                    
+                    // Remove active state after touch ends
+                    const removeActive = () => {
+                        touchTarget.classList.remove('touch-active');
+                        touchTarget.removeEventListener('touchend', removeActive);
+                        touchTarget.removeEventListener('touchcancel', removeActive);
+                    };
+                    
+                    touchTarget.addEventListener('touchend', removeActive);
+                    touchTarget.addEventListener('touchcancel', removeActive);
+                }
+            }, { passive: true });
+        },
+        
+        fixFastClick: function() {
+            // Fix for 300ms click delay on mobile
+            let lastClickTime = 0;
+            const delay = 300;
+            
+            document.addEventListener('click', function(e) {
+                const currentTime = Date.now();
+                if (currentTime - lastClickTime < delay) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                lastClickTime = currentTime;
+            }, true);
+        }
+    };
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => TouchFix.init());
+    } else {
+        TouchFix.init();
+    }
+    
+    // Make available globally
+    window.SathsaraTouchFix = TouchFix;
+    
+})();
