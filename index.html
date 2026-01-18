@@ -2,8 +2,13 @@
 <html lang="si">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SANJU Store - Next Gen Shopping</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <title>සත්සර මල් පැළ - Premium Flower Plants</title>
+    
+    <!-- iOS Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,341 +18,65 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Navigation CSS -->
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="touch-styles.css">
     <link rel="stylesheet" href="navigation.css">
     
-    <!-- Main Styles -->
-    <link rel="stylesheet" href="styles.css">
-    
-    <!-- Supabase Client (MUST BE LOADED BEFORE YOUR SCRIPTS) -->
+    <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* Tutorial Popup Styles - Modern Design */
-        .tutorial-popup {
+        /* Flower animations */
+        @keyframes petalFall {
+            0% { transform: translateY(-100px) rotate(0deg); opacity: 0; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 1; }
+        }
+        
+        .petal {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(10px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.4s ease;
-            padding: 15px;
+            font-size: 1.5rem;
+            opacity: 0.3;
+            z-index: -1;
+            animation: petalFall 15s linear infinite;
         }
         
-        .tutorial-popup.active {
-            opacity: 1;
-            visibility: visible;
+        .petal:nth-child(1) { left: 5%; animation-delay: 0s; }
+        .petal:nth-child(2) { left: 15%; animation-delay: 2s; }
+        .petal:nth-child(3) { left: 25%; animation-delay: 4s; }
+        .petal:nth-child(4) { left: 35%; animation-delay: 6s; }
+        .petal:nth-child(5) { left: 45%; animation-delay: 8s; }
+        .petal:nth-child(6) { left: 55%; animation-delay: 10s; }
+        .petal:nth-child(7) { left: 65%; animation-delay: 12s; }
+        .petal:nth-child(8) { left: 75%; animation-delay: 14s; }
+        .petal:nth-child(9) { left: 85%; animation-delay: 16s; }
+        .petal:nth-child(10) { left: 95%; animation-delay: 18s; }
+        
+        @keyframes flowerBloom {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
         }
         
-        .tutorial-content {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
-            border: 2px solid rgba(99, 102, 241, 0.4);
-            border-radius: 20px;
-            padding: 1.5rem;
-            max-width: 500px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            position: relative;
-            box-shadow: 0 25px 50px rgba(99, 102, 241, 0.4);
-            transform: scale(0.9) translateY(20px);
-            transition: transform 0.4s ease;
-        }
-        
-        .tutorial-popup.active .tutorial-content {
-            transform: scale(1) translateY(0);
-        }
-        
-        .tutorial-close {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            width: 44px;
-            height: 44px;
-            background: rgba(239, 68, 68, 0.2);
-            border: 2px solid rgba(239, 68, 68, 0.5);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 1.3rem;
-            color: #ef4444;
-            z-index: 10;
-            -webkit-tap-highlight-color: rgba(239, 68, 68, 0.3);
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        
-        .tutorial-close:hover,
-        .tutorial-close:active {
-            background: rgba(239, 68, 68, 0.4);
-            transform: rotate(90deg) scale(1.1);
-        }
-        
-        .tutorial-header {
-            text-align: center;
-            margin-bottom: 1.5rem;
-            padding-right: 20px;
-        }
-        
-        .tutorial-icon {
-            font-size: 3rem;
-            margin-bottom: 0.8rem;
-            animation: bounce 2s infinite;
-        }
-        
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-        
-        .tutorial-title {
-            font-size: 1.6rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-            line-height: 1.3;
-        }
-        
-        .tutorial-subtitle {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.95rem;
-            line-height: 1.5;
-        }
-        
-        .tutorial-steps {
-            margin-top: 1.5rem;
-        }
-        
-        .tutorial-step {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.2rem;
-            padding: 1rem;
-            background: rgba(99, 102, 241, 0.08);
-            border-radius: 12px;
-            border: 1px solid rgba(99, 102, 241, 0.25);
-            transition: all 0.3s;
-        }
-        
-        .tutorial-step:hover {
-            background: rgba(99, 102, 241, 0.12);
-            border-color: rgba(99, 102, 241, 0.4);
-            transform: translateX(3px);
-        }
-        
-        .step-number {
-            flex-shrink: 0;
-            width: 38px;
-            height: 38px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            font-weight: 700;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-        }
-        
-        .step-content {
-            flex: 1;
-        }
-        
-        .step-content h3 {
-            font-size: 1.05rem;
-            margin-bottom: 0.4rem;
-            color: var(--primary);
-            font-weight: 600;
-        }
-        
-        .step-content p {
-            color: rgba(255, 255, 255, 0.8);
-            line-height: 1.5;
-            font-size: 0.9rem;
-        }
-        
-        .tutorial-footer {
-            margin-top: 1.5rem;
-            text-align: center;
-            padding-top: 1.5rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .tutorial-buttons {
-            display: flex;
-            gap: 0.8rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .tutorial-btn {
-            padding: 11px 24px;
-            border-radius: 25px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: none;
-            font-size: 0.95rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-        
-        .tutorial-btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-        }
-        
-        .tutorial-btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
-        }
-        
-        .tutorial-btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-        }
-        
-        .tutorial-btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.18);
-            border-color: rgba(255, 255, 255, 0.4);
-        }
-        
-        .dont-show-again {
-            margin-top: 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 7px;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-        
-        .dont-show-again input[type="checkbox"] {
-            cursor: pointer;
-        }
-        
-        @media (max-width: 768px) {
-            .tutorial-content {
-                max-height: 85vh;
-                padding: 1.25rem;
-            }
-            
-            .tutorial-close {
-                width: 40px;
-                height: 40px;
-                font-size: 1.2rem;
-            }
-            
-            .tutorial-title {
-                font-size: 1.4rem;
-            }
-            
-            .tutorial-icon {
-                font-size: 2.5rem;
-            }
+        .flower-icon {
+            animation: flowerBloom 2s ease-in-out infinite;
         }
     </style>
 </head>
 <body>
     <canvas id="particle-canvas"></canvas>
-
-    <!-- Tutorial Popup -->
-    <div class="tutorial-popup" id="tutorialPopup">
-        <div class="tutorial-content">
-            <div class="tutorial-close" 
-                 onclick="closeTutorial()" 
-                 ontouchend="event.preventDefault(); closeTutorial();">
-                <i class="fas fa-times"></i>
-            </div>
-            
-            <div class="tutorial-header">
-                <div class="tutorial-icon">🛒</div>
-                <h2 class="tutorial-title">ඇණවුම් කරන්නේ කෙසේද?</h2>
-                <p class="tutorial-subtitle">පහසු පියවර 5කින් ඔබේ භාණඩ ඇණවුම් කරන්න</p>
-            </div>
-            
-            <div class="tutorial-steps">
-                <div class="tutorial-step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h3>භාණඩ තෝරන්න</h3>
-                        <p>ඔබට අවශ්‍ය භාණඩය scroll කරලා සොයන්න. භාණඩයේ ඡායාරූපය හෝ නම මත click කරන්න.</p>
-                    </div>
-                </div>
-                
-                <div class="tutorial-step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h3>"ඇණවුම කරන්න" ක්ලික් කරන්න</h3>
-                        <p>භාණඩයේ විස්තර බලා "ඇණවුම කරන්න" (Order Now) යන බොත්තම ඔබන්න.</p>
-                    </div>
-                </div>
-                
-                <div class="tutorial-step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h3>ඔබේ විස්තර ඇතුළත් කරන්න</h3>
-                        <p>ඔබේ නම, දුරකථන අංකය, ලිපිනය සහ වෙනත් අවශ්‍ය තොරතුරු පුරවන්න.</p>
-                    </div>
-                </div>
-                
-                <div class="tutorial-step">
-                    <div class="step-number">4</div>
-                    <div class="step-content">
-                        <h3>ගෙවීම් ක්‍රමය තෝරන්න</h3>
-                        <p>COD (මුදල් භාර දීමේදී ගෙවීම), බැංකු මාරු කිරීම, හෝ Online ගෙවීම් වලින් එකක් තෝරන්න.</p>
-                    </div>
-                </div>
-                
-                <div class="tutorial-step">
-                    <div class="step-number">5</div>
-                    <div class="step-content">
-                        <h3>ඇණවුම තහවුරු කරන්න</h3>
-                        <p>"ඇණවුම තහවුරු කරන්න" බොත්තම ක්ලික් කරන්න. ඔබට confirmation message එකක් පෙන්වනු ඇත!</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="tutorial-footer">
-                <div class="tutorial-buttons">
-                    <button class="tutorial-btn tutorial-btn-primary" 
-                            onclick="closeTutorial()" 
-                            ontouchend="event.preventDefault(); closeTutorial();">
-                        <i class="fas fa-check"></i> තේරුණා!
-                    </button>
-                    <button class="tutorial-btn tutorial-btn-secondary" 
-                            onclick="window.location.href='faq.html'" 
-                            ontouchend="event.preventDefault(); window.location.href='faq.html';">
-                        <i class="fas fa-question-circle"></i> වැඩි විස්තර
-                    </button>
-                </div>
-                
-                <label class="dont-show-again">
-                    <input type="checkbox" id="dontShowAgain">
-                    <span>මෙය නැවත පෙන්වන්න එපා</span>
-                </label>
-            </div>
-        </div>
-    </div>
+    
+    <!-- Floating petals -->
+    <div class="petal">🌸</div>
+    <div class="petal">🌺</div>
+    <div class="petal">🌼</div>
+    <div class="petal">🌻</div>
+    <div class="petal">🌷</div>
+    <div class="petal">💮</div>
+    <div class="petal">🏵️</div>
+    <div class="petal">🌹</div>
+    <div class="petal">🥀</div>
+    <div class="petal">🌺</div>
 
     <!-- Mobile Menu Overlay -->
     <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
@@ -355,11 +84,10 @@
     <!-- Navigation -->
     <nav>
         <div class="nav-logo" data-action="go-home">
-            <span style="font-size: 1.8rem;">🛍️</span>
-            <span>SANJU STORE</span>
+            <span class="flower-icon" style="font-size: 1.8rem;">🌺</span>
+            <span style="font-family: 'Noto Sans Sinhala', sans-serif;">සත්සර මල් පැළ</span>
         </div>
         
-        <!-- Desktop Navigation -->
         <div class="nav-links">
             <div class="nav-item active" data-page="home">
                 <i class="fas fa-home"></i> Home
@@ -378,7 +106,6 @@
             </div>
         </div>
         
-        <!-- Hamburger Menu -->
         <div class="hamburger" id="hamburger">
             <span></span>
             <span></span>
@@ -389,8 +116,8 @@
     <!-- Mobile Menu -->
     <div class="mobile-menu" id="mobileMenu">
         <div class="mobile-menu-header">
-            <h2>🛍️ SANJU STORE</h2>
-            <p>Your Shopping Destination</p>
+            <h2 style="font-family: 'Noto Sans Sinhala', sans-serif;">🌺 සත්සර මල් පැළ</h2>
+            <p>Your Flower Plant Paradise</p>
         </div>
         
         <div class="mobile-nav-items">
@@ -414,10 +141,6 @@
                 <i class="fas fa-info-circle"></i>
                 <span>About Us</span>
             </div>
-            <div class="mobile-nav-item" data-page="privacy">
-                <i class="fas fa-shield-alt"></i>
-                <span>Privacy Policy</span>
-            </div>
         </div>
         
         <div class="mobile-menu-footer">
@@ -428,7 +151,7 @@
                 <a href="#"><i class="fab fa-twitter"></i></a>
             </div>
             <p style="text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.5);">
-                © 2026 SANJU STORE
+                © 2026 සත්සර මල් පැළ
             </p>
         </div>
     </div>
@@ -437,15 +160,15 @@
     <div class="container">
         <!-- Hero Section -->
         <div class="hero-section">
-            <h1 class="hero-title">Future of Shopping</h1>
-            <p class="hero-subtitle">Experience products in a new dimension</p>
+            <h1 class="hero-title" style="font-family: 'Noto Sans Sinhala', sans-serif;">සත්සර මල් පැළ</h1>
+            <p class="hero-subtitle">Premium Flower Plants & Gardening Solutions</p>
         </div>
 
         <!-- Products Grid -->
         <div id="productsContainer">
             <div class="loading">
                 <div class="spinner"></div>
-                <p style="margin-top: 15px; opacity: 0.7;">Loading products...</p>
+                <p style="margin-top: 15px; opacity: 0.7;">Loading flower plants...</p>
             </div>
         </div>
     </div>
@@ -453,7 +176,7 @@
     <!-- Order Modal -->
     <div class="modal-overlay" id="orderModal">
         <div class="modal-content">
-            <span class="close-modal" onclick="closeOrderModal()">&times;</span>
+            <span class="close-modal" data-action="close-modal">&times;</span>
             <div id="orderModalBody"></div>
         </div>
     </div>
@@ -461,7 +184,7 @@
     <!-- Success Modal -->
     <div class="modal-overlay" id="successModal">
         <div class="modal-content">
-            <span class="close-modal" onclick="closeSuccessModal()">&times;</span>
+            <span class="close-modal" data-action="close-modal">&times;</span>
             <div id="successModalBody"></div>
         </div>
     </div>
@@ -473,92 +196,249 @@
     <footer>
         <div class="footer-content">
             <div class="footer-section">
-                <h3>SANJU STORE</h3>
-                <p>Your destination for next-generation shopping experiences. We bring products to life with cutting-edge technology.</p>
+                <h3 style="font-family: 'Noto Sans Sinhala', sans-serif;">සත්සර මල් පැළ</h3>
+                <p>Sri Lanka's premium flower plant supplier. We bring you the best quality plants.</p>
                 <div class="social-links">
-                    <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
-                    <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="social-icon" aria-label="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="#" class="social-icon" aria-label="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="social-icon" aria-label="WhatsApp">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                    <a href="#" class="social-icon" aria-label="TikTok">
+                        <i class="fab fa-tiktok"></i>
+                    </a>
                 </div>
             </div>
+            
             <div class="footer-section">
                 <h3>Quick Links</h3>
                 <div class="footer-links">
-                    <a href="index.html">Home</a>
-                    <a href="track.html">Track Order</a>
-                    <a href="about.html">About Us</a>
-                    <a href="contact.html">Contact</a>
+                    <a href="index.html">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                    <a href="track.html">
+                        <i class="fas fa-search-location"></i>
+                        <span>Track Order</span>
+                    </a>
+                    <a href="contact.html">
+                        <i class="fas fa-headset"></i>
+                        <span>Contact Us</span>
+                    </a>
+                    <a href="about.html">
+                        <i class="fas fa-info-circle"></i>
+                        <span>About Us</span>
+                    </a>
                 </div>
             </div>
+            
             <div class="footer-section">
-                <h3>Customer Service</h3>
+                <h3>Services</h3>
                 <div class="footer-links">
-                    <a href="#">Shipping Info</a>
-                    <a href="#">Returns</a>
-                    <a href="faq.html">FAQ</a>
-                    <a href="#">Privacy Policy</a>
+                    <a href="faq.html">
+                        <i class="fas fa-question-circle"></i>
+                        <span>FAQ</span>
+                    </a>
+                    <a href="#">
+                        <i class="fas fa-seedling"></i>
+                        <span>Plant Care</span>
+                    </a>
+                    <a href="#">
+                        <i class="fas fa-truck"></i>
+                        <span>Delivery</span>
+                    </a>
+                    <a href="#">
+                        <i class="fas fa-handshake"></i>
+                        <span>Bulk Orders</span>
+                    </a>
                 </div>
             </div>
+            
             <div class="footer-section">
                 <h3>Contact Us</h3>
-                <p><i class="fas fa-envelope"></i> info@sanjustore.com</p>
-                <p><i class="fas fa-phone"></i> +94 77 123 4567</p>
-                <p><i class="fas fa-clock"></i> Available 24/7</p>
+                <p>
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>123, Flower Lane, Colombo 07</span>
+                </p>
+                <p>
+                    <i class="fas fa-phone"></i>
+                    <a href="tel:+94771234567">+94 77 123 4567</a>
+                </p>
+                <p>
+                    <i class="fas fa-envelope"></i>
+                    <a href="mailto:info@sathsaraplants.com">info@sathsaraplants.com</a>
+                </p>
+                <p>
+                    <i class="fas fa-clock"></i>
+                    <span>Mon-Sat: 8AM - 6PM</span>
+                </p>
             </div>
         </div>
+        
         <div class="footer-bottom">
-            <p class="footer-text">
-                <span class="copyright">© 2026 <span class="brand">SANJU STORE</span>. All rights reserved.</span>
-                <span class="made-with">Made with <span class="heart">❤️</span> in <span class="brand">Sri Lanka</span></span>
-            </p>
+            <div class="footer-text">
+                <div class="copyright">
+                    <span>© 2026</span>
+                    <span class="brand">සත්සර මල් පැළ</span>
+                    <span>All Rights Reserved.</span>
+                </div>
+                
+                <div class="made-with">
+                    <span>Made with</span>
+                    <span class="heart">❤️</span>
+                    <span>by Sadeep</span>
+                </div>
+                
+                <div class="sanju-badge">
+                    <i class="fas fa-leaf"></i>
+                    <span>Premium Flower Plants</span>
+                </div>
+            </div>
         </div>
     </footer>
 
     <!-- Scripts -->
     <script src="config.js"></script>
     <script src="background.js"></script>
-    <script src="navigation.js" defer></script>
+    <script src="navigation.js"></script>
+    <script src="touch-fix.js"></script>
     <script src="app.js"></script>
     
     <script>
-        // Tutorial Popup Functions
+        // Tutorial Popup
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                const hideTutorial = localStorage.getItem('hideTutorial');
+                if (!hideTutorial) {
+                    // Show tutorial popup after 2 seconds
+                    setTimeout(() => {
+                        showTutorial();
+                    }, 2000);
+                }
+            }, 1000);
+        });
+        
         function showTutorial() {
-            document.getElementById('tutorialPopup').classList.add('active');
-            document.body.style.overflow = 'hidden';
+            const tutorialHTML = `
+                <div class="modal-overlay open" id="tutorialPopup">
+                    <div class="modal-content">
+                        <span class="close-modal" onclick="closeTutorial()">&times;</span>
+                        <div style="text-align: center;">
+                            <div style="font-size: 4rem; margin-bottom: 1rem;">🌺</div>
+                            <h2 style="font-family: 'Noto Sans Sinhala', sans-serif; color: var(--primary); margin-bottom: 1rem;">
+                                මල් පැල ඇණවුම් කරන්නේ කෙසේද?
+                            </h2>
+                            <p style="opacity: 0.8; margin-bottom: 2rem;">
+                                පහසු පියවර 4කින් ඔබේ මල් පැල ඇණවුම් කරන්න
+                            </p>
+                            
+                            <div style="text-align: left; margin-bottom: 2rem;">
+                                <div style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+                                    <div style="width: 30px; height: 30px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">1</div>
+                                    <div>
+                                        <strong>මල් පැල තෝරන්න</strong>
+                                        <p style="opacity: 0.7; margin-top: 5px; font-size: 0.9rem;">ඔබට අවශ්‍ය මල් පැලය තෝරන්න</p>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+                                    <div style="width: 30px; height: 30px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">2</div>
+                                    <div>
+                                        <strong>ඇණවුම් පෝරමය පුරවන්න</strong>
+                                        <p style="opacity: 0.7; margin-top: 5px; font-size: 0.9rem;">ඔබේ විස්තර ඇතුළත් කරන්න</p>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+                                    <div style="width: 30px; height: 30px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">3</div>
+                                    <div>
+                                        <strong>ගෙවීම් ක්‍රමය තෝරන්න</strong>
+                                        <p style="opacity: 0.7; margin-top: 5px; font-size: 0.9rem;">COD හෝ බැංකු මාරුව තෝරන්න</p>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+                                    <div style="width: 30px; height: 30px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">4</div>
+                                    <div>
+                                        <strong>ඇණවුම තහවුරු කරන්න</strong>
+                                        <p style="opacity: 0.7; margin-top: 5px; font-size: 0.9rem;">තහවුරු කිරීමේ පණිවිඩය ලැබෙනු ඇත</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 1rem; justify-content: center;">
+                                <button class="btn-3d btn-primary" onclick="closeTutorial()" style="flex: 1;">
+                                    තේරුණා!
+                                </button>
+                                <button class="btn-3d btn-secondary" onclick="window.location.href='faq.html'; closeTutorial();" style="flex: 1;">
+                                    වැඩි විස්තර
+                                </button>
+                            </div>
+                            
+                            <div style="margin-top: 1rem; text-align: center;">
+                                <label style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; opacity: 0.7; cursor: pointer;">
+                                    <input type="checkbox" id="dontShowAgain">
+                                    <span>මෙය නැවත පෙන්වන්න එපා</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', tutorialHTML);
         }
         
         function closeTutorial() {
-            const dontShow = document.getElementById('dontShowAgain').checked;
+            const dontShow = document.getElementById('dontShowAgain')?.checked;
             if (dontShow) {
                 localStorage.setItem('hideTutorial', 'true');
             }
-            document.getElementById('tutorialPopup').classList.remove('active');
-            document.body.style.overflow = '';
+            
+            const tutorial = document.getElementById('tutorialPopup');
+            if (tutorial) {
+                tutorial.remove();
+            }
         }
         
-        // Show tutorial on first visit
-        window.addEventListener('load', function() {
-            const hideTutorial = localStorage.getItem('hideTutorial');
-            if (!hideTutorial) {
-                setTimeout(showTutorial, 1500);
+        // Toast notification
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            
+            toast.textContent = message;
+            toast.className = 'show';
+            
+            if (type === 'success') {
+                toast.style.background = 'rgba(16, 185, 129, 0.2)';
+                toast.style.borderColor = '#10b981';
+            } else if (type === 'error') {
+                toast.style.background = 'rgba(239, 68, 68, 0.2)';
+                toast.style.borderColor = '#ef4444';
+            }
+            
+            setTimeout(() => {
+                toast.className = '';
+            }, 3000);
+        }
+        
+        // Modal close functionality
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('close-modal') || e.target.closest('.close-modal')) {
+                const modal = e.target.closest('.modal-overlay');
+                if (modal) {
+                    modal.classList.remove('open');
+                }
+            }
+            
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.classList.remove('open');
             }
         });
-        
-        // Close popup when clicking outside
-        const tutorialPopup = document.getElementById('tutorialPopup');
-        tutorialPopup.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeTutorial();
-            }
-        });
-        
-        // Add touch support for tutorial popup
-        tutorialPopup.addEventListener('touchend', function(e) {
-            if (e.target === this) {
-                e.preventDefault();
-                closeTutorial();
-            }
-        }, { passive: false });
     </script>
 </body>
 </html>
