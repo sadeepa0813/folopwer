@@ -1,29 +1,37 @@
 {
-  "name": "3d-store",
+  "name": "sathsara-flower-plants",
   "version": "1.0.0",
-  "description": "3D E-Commerce Store with Supabase Backend",
+  "description": "සත්සර මල් පැළ - Premium Flower Plant E-Commerce Store",
   "main": "index.html",
   "scripts": {
-    "start": "npx http-server -p 3000",
-    "dev": "npx http-server -p 3000",
+    "start": "npx http-server -p 3000 -c-1",
+    "dev": "npx http-server -p 3000 -c-1",
     "build": "echo 'No build required - static files'",
-    "deploy": "echo 'Deploy using Netlify, Vercel, or GitHub Pages'"
+    "deploy": "echo 'Deploy using Netlify, Vercel, or GitHub Pages'",
+    "test": "echo 'No tests specified'"
   },
   "keywords": [
+    "flower-plants",
     "ecommerce",
-    "3d",
-    "store",
-    "supabase",
-    "shopping"
+    "srilanka",
+    "gardening",
+    "plants",
+    "සත්සර-මල්-පැළ"
   ],
-  "author": "Your Name",
+  "author": "Sadeep",
   "license": "MIT",
   "devDependencies": {
     "http-server": "^14.1.1"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/3d-store"
+    "url": "https://github.com/yourusername/sathsara-flower-plants.git"
   },
-  "homepage": "https://yourusername.github.io/3d-store"
+  "homepage": "https://sathsaraplants.com",
+  "bugs": {
+    "url": "https://github.com/yourusername/sathsara-flower-plants/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
 }
