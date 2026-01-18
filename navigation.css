@@ -1,22 +1,21 @@
-/* navigation.css - Unified Navigation Styles for SANJU Store */
+/* සත්සර මල් පැළ - Navigation Styles */
 
-/* ==================== NAVIGATION CONTAINER ==================== */
 nav {
     position: sticky;
     top: 0;
     z-index: 1000;
     background: rgba(15, 23, 42, 0.98);
     backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+    border-bottom: 1px solid rgba(16, 185, 129, 0.3);
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
+    padding-left: calc(2rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(2rem + env(safe-area-inset-right, 0px));
 }
 
-/* Logo Styles */
 .nav-logo {
     display: flex;
     align-items: center;
@@ -28,16 +27,16 @@ nav {
     -webkit-text-fill-color: transparent;
     cursor: pointer;
     transition: all 0.3s ease;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .nav-logo:hover {
     transform: scale(1.05);
-    filter: brightness(1.2);
 }
 
-/* ==================== DESKTOP NAVIGATION ==================== */
 .nav-links {
     display: flex;
     gap: 1.5rem;
@@ -50,79 +49,61 @@ nav {
     padding: 0.6rem 1.2rem;
     border-radius: 10px;
     transition: all 0.3s ease;
-    position: relative;
     color: rgba(255, 255, 255, 0.9);
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.95rem;
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
 }
 
-.nav-item::after {
+.nav-item::before {
     content: '';
     position: absolute;
     bottom: 0;
     left: 50%;
-    transform: translateX(-50%) scaleX(0);
-    width: 60%;
+    width: 0;
     height: 2px;
     background: linear-gradient(90deg, var(--primary), var(--secondary));
-    transition: transform 0.3s ease;
-    border-radius: 2px;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
 }
 
 .nav-item:hover {
     color: white;
-    background: rgba(99, 102, 241, 0.15);
-    transform: translateY(-2px);
+    background: rgba(16, 185, 129, 0.15);
 }
 
-.nav-item:hover::after {
-    transform: translateX(-50%) scaleX(1);
+.nav-item:hover::before {
+    width: 80%;
 }
 
 .nav-item.active {
     color: white;
-    background: rgba(99, 102, 241, 0.25);
+    background: rgba(16, 185, 129, 0.25);
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-.nav-item.active::after {
-    transform: translateX(-50%) scaleX(1);
+.nav-item.active::before {
+    width: 80%;
 }
 
-.nav-item i {
-    font-size: 1rem;
-    width: 20px;
-    text-align: center;
-}
-
-/* ==================== HAMBURGER MENU ==================== */
 .hamburger {
     display: none;
     flex-direction: column;
     cursor: pointer;
     padding: 10px;
     z-index: 1001;
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(16, 185, 129, 0.1);
     border-radius: 10px;
     transition: all 0.3s ease;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    border: 1px solid rgba(99, 102, 241, 0.2);
-}
-
-.hamburger:hover {
-    background: rgba(99, 102, 241, 0.2);
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-}
-
-.hamburger:active {
-    transform: scale(0.95);
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+    align-items: center;
 }
 
 .hamburger span {
@@ -134,7 +115,6 @@ nav {
     transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-/* Hamburger Animation */
 .hamburger.active span:nth-child(1) {
     transform: rotate(45deg) translate(6px, 6px);
     background: var(--primary);
@@ -150,7 +130,6 @@ nav {
     background: var(--secondary);
 }
 
-/* ==================== MOBILE MENU OVERLAY ==================== */
 .mobile-menu-overlay {
     display: none;
     position: fixed;
@@ -163,7 +142,6 @@ nav {
     z-index: 998;
     opacity: 0;
     transition: opacity 0.3s ease;
-    -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-menu-overlay.active {
@@ -171,7 +149,6 @@ nav {
     display: block;
 }
 
-/* ==================== MOBILE MENU ==================== */
 .mobile-menu {
     display: none;
     position: fixed;
@@ -181,13 +158,13 @@ nav {
     height: 100vh;
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));
     backdrop-filter: blur(20px);
-    border-left: 2px solid rgba(99, 102, 241, 0.3);
+    border-left: 2px solid rgba(16, 185, 129, 0.3);
     box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
     z-index: 999;
     transition: right 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 120px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-top: env(safe-area-inset-top, 0px);
 }
 
 .mobile-menu.active {
@@ -195,12 +172,10 @@ nav {
     display: block;
 }
 
-/* Mobile Menu Header */
 .mobile-menu-header {
     padding: 2rem 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
-    background: rgba(15, 23, 42, 0.5);
 }
 
 .mobile-menu-header h2 {
@@ -209,16 +184,8 @@ nav {
     -webkit-text-fill-color: transparent;
     font-size: 1.5rem;
     margin-bottom: 0.5rem;
-    font-weight: 700;
 }
 
-.mobile-menu-header p {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.9rem;
-    font-weight: 400;
-}
-
-/* ==================== MOBILE NAV ITEMS ==================== */
 .mobile-nav-items {
     padding: 1.5rem 0;
 }
@@ -232,52 +199,39 @@ nav {
     align-items: center;
     gap: 1rem;
     border-left: 3px solid transparent;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    touch-action: manipulation;
-    margin: 0.25rem 0.5rem;
-    border-radius: 8px;
+    min-height: 56px;
+    position: relative;
+    overflow: hidden;
 }
 
-.mobile-nav-item i {
-    width: 24px;
-    font-size: 1.1rem;
-    color: var(--primary);
-    text-align: center;
-    transition: all 0.3s ease;
+.mobile-nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.2), transparent);
+    transition: width 0.3s ease;
 }
 
 .mobile-nav-item:hover {
-    background: rgba(99, 102, 241, 0.15);
+    background: rgba(16, 185, 129, 0.15);
     border-left-color: var(--primary);
     padding-left: 2rem;
-    transform: translateX(5px);
 }
 
-.mobile-nav-item:hover i {
-    transform: scale(1.2);
-    color: var(--secondary);
-}
-
-.mobile-nav-item:active {
-    background: rgba(99, 102, 241, 0.25);
-    transform: scale(0.98);
+.mobile-nav-item:hover::before {
+    width: 100%;
 }
 
 .mobile-nav-item.active {
-    background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.1));
+    background: rgba(16, 185, 129, 0.2);
     border-left-color: var(--secondary);
     color: white;
     font-weight: 600;
-    box-shadow: inset 4px 0 0 var(--secondary);
 }
 
-.mobile-nav-item.active i {
-    color: var(--secondary);
-    transform: scale(1.1);
-}
-
-/* ==================== MOBILE MENU FOOTER ==================== */
 .mobile-menu-footer {
     position: fixed;
     bottom: 0;
@@ -287,7 +241,7 @@ nav {
     background: rgba(15, 23, 42, 0.95);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
-    z-index: 1000;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
 }
 
 .mobile-social-links {
@@ -301,39 +255,28 @@ nav {
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    background: rgba(99, 102, 241, 0.15);
+    background: rgba(16, 185, 129, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--primary);
     transition: all 0.3s ease;
     font-size: 1.2rem;
-    -webkit-tap-highlight-color: transparent;
-    border: 1px solid rgba(99, 102, 241, 0.3);
+    min-height: 44px;
+    min-width: 44px;
 }
 
 .mobile-social-links a:hover {
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
-    transform: translateY(-3px) rotate(5deg);
-    box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+    transform: translateY(-3px);
 }
 
-.mobile-social-links a:active {
-    transform: scale(0.95);
-}
-
-.mobile-menu-footer p {
-    text-align: center;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 0;
-}
-
-/* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 768px) {
     nav {
         padding: 0.75rem 1.25rem;
+        padding-left: calc(1.25rem + env(safe-area-inset-left, 0px));
+        padding-right: calc(1.25rem + env(safe-area-inset-right, 0px));
     }
     
     .nav-links {
@@ -353,105 +296,8 @@ nav {
     }
 }
 
-@media (max-width: 480px) {
-    nav {
-        padding: 0.75rem 1rem;
-    }
-    
+@supports (-webkit-touch-callout: none) {
     .mobile-menu {
-        width: 260px;
-    }
-    
-    .mobile-nav-item {
-        padding: 0.875rem 1.25rem;
-        font-size: 0.95rem;
-    }
-    
-    .mobile-menu-header {
-        padding: 1.5rem 1rem;
-    }
-    
-    .mobile-menu-header h2 {
-        font-size: 1.3rem;
-    }
-}
-
-/* ==================== ANIMATIONS ==================== */
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-@keyframes slideOutRight {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-}
-
-.mobile-menu.active {
-    animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-.mobile-menu:not(.active) {
-    animation: slideOutRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-/* ==================== ACCESSIBILITY ==================== */
-@media (prefers-reduced-motion: reduce) {
-    .nav-item,
-    .mobile-nav-item,
-    .hamburger,
-    .mobile-menu,
-    .mobile-menu-overlay {
-        transition: none !important;
-        animation: none !important;
-    }
-}
-
-/* Focus styles */
-.nav-item:focus-visible,
-.mobile-nav-item:focus-visible,
-.hamburger:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 3px;
-    border-radius: 8px;
-}
-
-/* High contrast mode */
-@media (prefers-contrast: high) {
-    .nav-item.active,
-    .mobile-nav-item.active {
-        outline: 2px solid white;
-    }
-    
-    .hamburger span {
-        background: white;
-    }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    .mobile-menu {
-        background: rgba(15, 23, 42, 0.98);
-    }
-}
-
-/* Print styles */
-@media print {
-    .hamburger,
-    .mobile-menu,
-    .mobile-menu-overlay {
-        display: none !important;
+        height: -webkit-fill-available;
     }
 }
