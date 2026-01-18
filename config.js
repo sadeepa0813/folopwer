@@ -4,10 +4,10 @@
 // Supabase Configuration
 const SUPABASE_CONFIG = {
     // Your Project URL (Settings > API > Project URL)
-    url: 'https://pgavlqfhmelkhjnjzrsz.supabase.co',
+    url: 'https://byvinpqpxplmbsxcvapk.supabase.co',
     
     // Your API Key (Settings > API > Project API keys > anon public)
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnYXZscWZobWVsa2hqbmp6cnN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNzMzNzMsImV4cCI6MjA4Mzg0OTM3M30.7KmX3yMwCo9klCMjOHmRT2e6qMni4Cjimo0_BAMFK00'
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5dmlucHFweHBsbWJzeGN2YXBrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3MTY1ODQsImV4cCI6MjA4NDI5MjU4NH0.uQV2Z6NL36gAF3y2AtrPYxejiXsxUYgKw-emX8X2X2k'
 };
 
 // WhatsApp Configuration
