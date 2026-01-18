@@ -1,19 +1,14 @@
-// navigation.js - Unified Navigation Module for SANJU Store
-// Version: 2.0.0
-// Last Updated: 2026-01-16
+/**
+ * සත්සර මල් පැළ - Navigation System
+ * Version: 2.0.0
+ */
 
 (function() {
     'use strict';
     
-    console.log('🚀 SANJU Navigation Module Initializing...');
+    console.log('🧭 සත්සර මල් පැළ: Navigation Initializing...');
     
-    // ======================
-    // 1. CONFIGURATION
-    // ======================
     const CONFIG = {
-        animationSpeed: 300,
-        mobileMenuWidth: 280,
-        activeClass: 'active',
         pages: {
             home: 'index.html',
             track: 'track.html',
@@ -24,43 +19,36 @@
         }
     };
     
-    // ======================
-    // 2. STATE MANAGEMENT
-    // ======================
     let isMobileMenuOpen = false;
     
-    // ======================
-    // 3. ELEMENT REFERENCES
-    // ======================
     const elements = {
         hamburger: document.getElementById('hamburger'),
         mobileMenu: document.getElementById('mobileMenu'),
         overlay: document.getElementById('mobileMenuOverlay'),
-        navLogo: document.querySelector('.nav-logo'),
         body: document.body
     };
     
-    // ======================
-    // 4. CORE FUNCTIONS
-    // ======================
+    // Check if elements exist
+    function checkElements() {
+        return elements.hamburger && elements.mobileMenu && elements.overlay;
+    }
     
     // Toggle mobile menu
     function toggleMobileMenu() {
-        if (!elements.hamburger || !elements.mobileMenu || !elements.overlay) return;
+        if (!checkElements()) return;
         
         isMobileMenuOpen = !isMobileMenuOpen;
         
-        elements.hamburger.classList.toggle(CONFIG.activeClass);
-        elements.mobileMenu.classList.toggle(CONFIG.activeClass);
-        elements.overlay.classList.toggle(CONFIG.activeClass);
+        elements.hamburger.classList.toggle('active');
+        elements.mobileMenu.classList.toggle('active');
+        elements.overlay.classList.toggle('active');
         
-        // Toggle body scroll
-        elements.body.style.overflow = isMobileMenuOpen ? 'hidden' : '';
-        
-        // Add/remove escape key listener
+        // Prevent body scroll when menu is open
         if (isMobileMenuOpen) {
+            elements.body.style.overflow = 'hidden';
             document.addEventListener('keydown', handleEscapeKey);
         } else {
+            elements.body.style.overflow = '';
             document.removeEventListener('keydown', handleEscapeKey);
         }
         
@@ -69,62 +57,70 @@
     
     // Close mobile menu
     function closeMobileMenu() {
-        if (!elements.hamburger || !elements.mobileMenu || !elements.overlay) return;
+        if (!checkElements()) return;
         
         isMobileMenuOpen = false;
-        elements.hamburger.classList.remove(CONFIG.activeClass);
-        elements.mobileMenu.classList.remove(CONFIG.activeClass);
-        elements.overlay.classList.remove(CONFIG.activeClass);
+        elements.hamburger.classList.remove('active');
+        elements.mobileMenu.classList.remove('active');
+        elements.overlay.classList.remove('active');
         elements.body.style.overflow = '';
         document.removeEventListener('keydown', handleEscapeKey);
     }
     
     // Handle escape key
     function handleEscapeKey(e) {
-        if (e.key === 'Escape') {
+        if (e.key === 'Escape' && isMobileMenuOpen) {
             closeMobileMenu();
         }
     }
     
     // Navigate to page
     function navigateTo(pageKey) {
-        console.log(`📍 Navigating to: ${pageKey}`);
-        closeMobileMenu();
-        
         const pageUrl = CONFIG.pages[pageKey];
         if (pageUrl) {
+            console.log(`📍 Navigating to: ${pageKey} (${pageUrl})`);
+            closeMobileMenu();
+            
+            // Small delay for smooth transition
             setTimeout(() => {
                 window.location.href = pageUrl;
-            }, CONFIG.animationSpeed);
+            }, 300);
         } else {
-            console.error(`Page "${pageKey}" not found`);
-            window.location.href = 'index.html';
+            console.warn(`⚠️ Page not found: ${pageKey}`);
         }
     }
     
-    // Highlight active page
+    // Highlight active page based on current URL
     function highlightActivePage() {
         const currentPage = window.location.pathname.split('/').pop() || 'index.html';
         
-        // Desktop nav items
-        document.querySelectorAll('.nav-item').forEach(item => {
+        // Helper function to check if page matches
+        const isActivePage = (pageAttr) => {
+            const pageUrl = CONFIG.pages[pageAttr];
+            return pageUrl && currentPage.includes(pageUrl);
+        };
+        
+        // Highlight desktop navigation
+        document.querySelectorAll('.nav-item[data-page]').forEach(item => {
             const pageAttr = item.getAttribute('data-page');
-            if (pageAttr && currentPage.includes(CONFIG.pages[pageAttr])) {
-                item.classList.add(CONFIG.activeClass);
+            if (isActivePage(pageAttr)) {
+                item.classList.add('active');
             } else {
-                item.classList.remove(CONFIG.activeClass);
+                item.classList.remove('active');
             }
         });
         
-        // Mobile nav items
-        document.querySelectorAll('.mobile-nav-item').forEach(item => {
+        // Highlight mobile navigation
+        document.querySelectorAll('.mobile-nav-item[data-page]').forEach(item => {
             const pageAttr = item.getAttribute('data-page');
-            if (pageAttr && currentPage.includes(CONFIG.pages[pageAttr])) {
-                item.classList.add(CONFIG.activeClass);
+            if (isActivePage(pageAttr)) {
+                item.classList.add('active');
             } else {
-                item.classList.remove(CONFIG.activeClass);
+                item.classList.remove('active');
             }
         });
+        
+        console.log(`📍 Active page: ${currentPage}`);
     }
     
     // Setup event listeners
@@ -132,24 +128,17 @@
         // Hamburger button
         if (elements.hamburger) {
             elements.hamburger.addEventListener('click', toggleMobileMenu);
-            elements.hamburger.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                toggleMobileMenu();
-            }, { passive: false });
         }
         
         // Overlay close
         if (elements.overlay) {
             elements.overlay.addEventListener('click', closeMobileMenu);
-            elements.overlay.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                closeMobileMenu();
-            }, { passive: false });
         }
         
         // Desktop navigation
         document.querySelectorAll('.nav-item[data-page]').forEach(item => {
-            item.addEventListener('click', function() {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
                 const pageKey = this.getAttribute('data-page');
                 navigateTo(pageKey);
             });
@@ -157,57 +146,62 @@
         
         // Mobile navigation
         document.querySelectorAll('.mobile-nav-item[data-page]').forEach(item => {
-            item.addEventListener('click', function() {
-                const pageKey = this.getAttribute('data-page');
-                navigateTo(pageKey);
-            });
-            
-            // Touch support
-            item.addEventListener('touchend', function(e) {
+            item.addEventListener('click', function(e) {
                 e.preventDefault();
                 const pageKey = this.getAttribute('data-page');
                 navigateTo(pageKey);
-            }, { passive: false });
+            });
         });
         
-        // Logo click
-        if (elements.navLogo) {
-            elements.navLogo.addEventListener('click', () => navigateTo('home'));
-        }
+        // Logo click - go home
+        document.querySelectorAll('.nav-logo[data-action="go-home"]').forEach(logo => {
+            logo.addEventListener('click', (e) => {
+                e.preventDefault();
+                navigateTo('home');
+            });
+        });
+        
+        // Close menu when clicking on menu items
+        document.querySelectorAll('.mobile-nav-item').forEach(item => {
+            item.addEventListener('click', closeMobileMenu);
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768 && isMobileMenuOpen) {
+                closeMobileMenu();
+            }
+        });
     }
     
     // Initialize navigation
     function initNavigation() {
-        // Check if required elements exist
-        if (!elements.hamburger || !elements.mobileMenu || !elements.overlay) {
-            console.warn('⚠️ Navigation elements missing. Navigation disabled.');
-            return;
+        if (!checkElements()) {
+            console.warn('⚠️ Navigation elements missing. Some features may not work.');
         }
         
         setupEventListeners();
         highlightActivePage();
         
-        // Handle browser back/forward
+        // Update active page on browser navigation
         window.addEventListener('popstate', highlightActivePage);
         
-        console.log('✅ Navigation module initialized');
+        console.log('✅ Navigation system initialized');
     }
     
-    // ======================
-    // 5. PUBLIC API
-    // ======================
-    window.SANJU = window.SANJU || {};
-    window.SANJU.Navigation = {
-        toggle: toggleMobileMenu,
-        close: closeMobileMenu,
+    // Public API
+    window.SathsaraNavigation = {
+        toggleMenu: toggleMobileMenu,
+        closeMenu: closeMobileMenu,
         navigate: navigateTo,
-        refresh: highlightActivePage,
-        isOpen: () => isMobileMenuOpen
+        refresh: highlightActivePage
     };
     
-    // ======================
-    // 6. INITIALIZE
-    // ======================
-    document.addEventListener('DOMContentLoaded', initNavigation);
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initNavigation);
+    } else {
+        initNavigation();
+    }
     
 })();
