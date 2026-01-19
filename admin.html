@@ -1,547 +1,498 @@
-
 <!DOCTYPE html>
-<html lang="si">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - සත්සර මල් පැළ</title>
+    <title>Admin Dashboard - 3D Store</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
-    <!-- Font Awesome -->
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Admin Styles -->
-    <link rel="stylesheet" href="admin.css">
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional Admin Styles */
+        .stock-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .stock-in { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .stock-out { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .stock-low { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 10px 15px;
+            border-radius: 8px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: var(--primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .action-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 45px 12px 15px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-size: 0.95rem;
+        }
+        
+        .search-box i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .filter-options {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-chip {
+            padding: 6px 12px;
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+        
+        .filter-chip.active {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .customer-phone-link {
+            color: var(--accent);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .customer-phone-link:hover {
+            text-decoration: underline;
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .order-action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+        
+        .confirm-btn { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .cancel-btn { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .view-btn { background: rgba(99, 102, 241, 0.2); color: var(--primary); }
+        
+        .order-action-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .stock-input {
+            width: 80px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+        }
+        
+        .today-badge {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+        
+        .stats-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+        
+        .stats-card.products::after { background: var(--primary); }
+        .stats-card.orders::after { background: var(--accent); }
+        .stats-card.revenue::after { background: var(--success); }
+        .stats-card.pending::after { background: var(--warning); }
+    </style>
 </head>
-<body class="admin-body">
-    
-    <!-- Mobile Menu Overlay -->
-    <div class="mobile-sidebar-overlay" id="mobileOverlay"></div>
-    
-    <!-- Sidebar -->
-    <aside class="admin-sidebar" id="adminSidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">
-                <span class="logo-icon">🌺</span>
-                <span class="logo-text">සත්සර Admin</span>
+<body>
+    <!-- Particle Background Canvas -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-logo">
+            <span style="font-size: 1.8rem;">⚙️</span>
+            <span>ADMIN PANEL</span>
+        </div>
+        <div class="nav-links">
+            <div class="nav-item active" onclick="showSection('dashboard')">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
             </div>
-            <button class="sidebar-close" id="sidebarClose">
-                <i class="fas fa-times"></i>
+            <div class="nav-item" onclick="showSection('products')">
+                <i class="fas fa-box"></i> Products
+            </div>
+            <div class="nav-item" onclick="showSection('orders')">
+                <i class="fas fa-shopping-cart"></i> Orders
+            </div>
+            <div class="nav-item" onclick="showSection('customers')">
+                <i class="fas fa-users"></i> Customers
+            </div>
+            <button class="btn-3d btn-danger btn-small" onclick="handleLogout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
             </button>
         </div>
-        
-        <nav class="sidebar-nav">
-            <a href="#dashboard" class="nav-link active" data-section="dashboard">
-                <i class="fas fa-th-large"></i>
-                <span>Dashboard</span>
-            </a>
-            <a href="#orders" class="nav-link" data-section="orders">
-                <i class="fas fa-shopping-cart"></i>
-                <span>Orders</span>
-                <span class="nav-badge">5</span>
-            </a>
-            <a href="#products" class="nav-link" data-section="products">
-                <i class="fas fa-seedling"></i>
-                <span>Products</span>
-            </a>
-            <a href="#customers" class="nav-link" data-section="customers">
-                <i class="fas fa-users"></i>
-                <span>Customers</span>
-            </a>
-            <a href="#analytics" class="nav-link" data-section="analytics">
-                <i class="fas fa-chart-line"></i>
-                <span>Analytics</span>
-            </a>
-            <a href="#settings" class="nav-link" data-section="settings">
-                <i class="fas fa-cog"></i>
-                <span>Settings</span>
-            </a>
-        </nav>
-        
-        <div class="sidebar-footer">
-            <button class="btn-logout" id="logoutBtn">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-            </button>
-        </div>
-    </aside>
-    
-    <!-- Main Content -->
-    <main class="admin-main">
-        
-        <!-- Top Bar -->
-        <header class="admin-topbar">
-            <button class="menu-toggle" id="menuToggle">
-                <i class="fas fa-bars"></i>
-            </button>
-            
-            <div class="topbar-search">
-                <i class="fas fa-search"></i>
-                <input type="text" placeholder="Search...">
-            </div>
-            
-            <div class="topbar-actions">
-                <button class="topbar-btn" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge">3</span>
-                </button>
-                <div class="user-menu">
-                    <img src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff" alt="User" class="user-avatar">
-                    <span class="user-name">Admin</span>
-                </div>
-            </div>
-        </header>
-        
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
         <!-- Dashboard Section -->
-        <section class="admin-section active" id="dashboard">
-            <div class="section-header">
-                <h1>Dashboard</h1>
-                <div class="header-actions">
-                    <button class="btn btn-outline">
-                        <i class="fas fa-download"></i>
-                        Export
-                    </button>
-                    <button class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        New Order
-                    </button>
+        <div id="dashboard" class="admin-section active">
+            <h2 class="mb-3">Dashboard Overview</h2>
+            <p style="opacity: 0.7; margin-bottom: 30px;">
+                Welcome, <span id="adminEmail">Admin</span>! 
+                <span id="lastLogin">Last login: -</span>
+            </p>
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <div class="action-btn" onclick="showSection('products'); document.getElementById('addProductBtn').click();">
+                    <i class="fas fa-plus"></i> Add Product
+                </div>
+                <div class="action-btn" onclick="showSection('orders'); filterOrders('today');">
+                    <i class="fas fa-calendar-day"></i> Today's Orders
+                </div>
+                <div class="action-btn" onclick="showOutOfStock()">
+                    <i class="fas fa-exclamation-triangle"></i> Out of Stock
+                </div>
+                <div class="action-btn" onclick="exportOrders()">
+                    <i class="fas fa-download"></i> Export Orders
                 </div>
             </div>
             
-            <!-- Stats Cards -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon primary">
+            <!-- Stats Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; margin-bottom: 40px;">
+                <div class="card-3d stats-card products">
+                    <div style="font-size: 2.5rem; margin-bottom: 10px; color: var(--primary);">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <h3 class="mono" id="totalProducts" style="font-size: 2.5rem; color: var(--primary);">0</h3>
+                    <p style="opacity: 0.7;">Total Products</p>
+                    <small id="stockInfo" style="opacity: 0.6; font-size: 0.85rem;">Loading stock info...</small>
+                </div>
+                
+                <div class="card-3d stats-card orders">
+                    <div style="font-size: 2.5rem; margin-bottom: 10px; color: var(--accent);">
                         <i class="fas fa-shopping-cart"></i>
                     </div>
-                    <div class="stat-content">
-                        <h3>Total Orders</h3>
-                        <p class="stat-value" id="totalOrders">0</p>
-                        <span class="stat-change up">
-                            <i class="fas fa-arrow-up"></i> 12.5%
-                        </span>
-                    </div>
+                    <h3 class="mono" id="totalOrders" style="font-size: 2.5rem; color: var(--accent);">0</h3>
+                    <p style="opacity: 0.7;">Total Orders</p>
+                    <small id="todayOrders" style="opacity: 0.6; font-size: 0.85rem;">Today: 0</small>
                 </div>
                 
-                <div class="stat-card">
-                    <div class="stat-icon success">
-                        <i class="fas fa-dollar-sign"></i>
+                <div class="card-3d stats-card pending">
+                    <div style="font-size: 2.5rem; margin-bottom: 10px; color: var(--warning);">
+                        <i class="fas fa-clock"></i>
                     </div>
-                    <div class="stat-content">
-                        <h3>Revenue</h3>
-                        <p class="stat-value" id="totalRevenue">රු. 0</p>
-                        <span class="stat-change up">
-                            <i class="fas fa-arrow-up"></i> 8.2%
-                        </span>
-                    </div>
+                    <h3 class="mono" id="pendingOrders" style="font-size: 2.5rem; color: var(--warning);">0</h3>
+                    <p style="opacity: 0.7;">Pending Orders</p>
+                    <small style="opacity: 0.6; font-size: 0.85rem;">Need attention</small>
                 </div>
                 
-                <div class="stat-card">
-                    <div class="stat-icon warning">
-                        <i class="fas fa-seedling"></i>
+                <div class="card-3d stats-card revenue">
+                    <div style="font-size: 2.5rem; margin-bottom: 10px; color: var(--success);">
+                        <i class="fas fa-money-bill-wave"></i>
                     </div>
-                    <div class="stat-content">
-                        <h3>Products</h3>
-                        <p class="stat-value" id="totalProducts">0</p>
-                        <span class="stat-change">
-                            <i class="fas fa-minus"></i> 0%
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-icon info">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3>Customers</h3>
-                        <p class="stat-value" id="totalCustomers">0</p>
-                        <span class="stat-change up">
-                            <i class="fas fa-arrow-up"></i> 5.1%
-                        </span>
-                    </div>
+                    <h3 class="mono" id="totalRevenue" style="font-size: 1.8rem; color: var(--success);">Rs. 0</h3>
+                    <p style="opacity: 0.7;">Total Revenue</p>
+                    <small id="todayRevenue" style="opacity: 0.6; font-size: 0.85rem;">Today: Rs. 0</small>
                 </div>
             </div>
-            
+
             <!-- Recent Orders -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>
-                        <i class="fas fa-clock"></i>
-                        Recent Orders
-                    </h2>
-                    <button class="btn btn-text">View All</button>
+            <div class="card-3d">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 class="mb-0">Recent Orders</h3>
+                    <button class="btn-3d btn-secondary btn-small" onclick="showSection('orders')">
+                        View All <i class="fas fa-arrow-right"></i>
+                    </button>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="data-table" id="recentOrdersTable">
-                            <thead>
-                                <tr>
-                                    <th>Order ID</th>
-                                    <th>Customer</th>
-                                    <th>Product</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="loading-row">
-                                    <td colspan="6">
-                                        <div class="loading-spinner"></div>
-                                        Loading...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <div id="recentOrdersTable"></div>
             </div>
-        </section>
-        
-        <!-- Orders Section -->
-        <section class="admin-section" id="orders">
-            <div class="section-header">
-                <h1>Orders Management</h1>
-                <div class="header-actions">
-                    <button class="btn btn-outline">
-                        <i class="fas fa-filter"></i>
-                        Filter
-                    </button>
-                    <button class="btn btn-primary">
-                        <i class="fas fa-download"></i>
-                        Export CSV
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Search & Filter -->
-            <div class="search-filter-bar">
-                <div class="search-box-large">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search by Order ID, Customer, Phone..." id="orderSearch">
-                </div>
-                <div class="filter-chips">
-                    <button class="filter-chip active" data-filter="all">
-                        All Orders
-                    </button>
-                    <button class="filter-chip" data-filter="pending">
-                        <i class="fas fa-clock"></i>
-                        Pending
-                    </button>
-                    <button class="filter-chip" data-filter="confirmed">
-                        <i class="fas fa-check"></i>
-                        Confirmed
-                    </button>
-                    <button class="filter-chip" data-filter="cancelled">
-                        <i class="fas fa-times"></i>
-                        Cancelled
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Orders Table -->
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="data-table" id="ordersTable">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        <input type="checkbox" class="checkbox">
-                                    </th>
-                                    <th>Tracking ID</th>
-                                    <th>Customer</th>
-                                    <th>Phone</th>
-                                    <th>Product</th>
-                                    <th>Qty</th>
-                                    <th>Total</th>
-                                    <th>Status</th>
-                                    <th>Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="loading-row">
-                                    <td colspan="10">
-                                        <div class="loading-spinner"></div>
-                                        Loading orders...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
+        </div>
+
         <!-- Products Section -->
-        <section class="admin-section" id="products">
-            <div class="section-header">
-                <h1>Products Management</h1>
-                <div class="header-actions">
-                    <button class="btn btn-primary" id="addProductBtn">
-                        <i class="fas fa-plus"></i>
-                        Add Product
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Products Grid -->
-            <div class="products-grid" id="productsGrid">
-                <div class="loading-card">
-                    <div class="loading-spinner"></div>
-                    <p>Loading products...</p>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Customers Section -->
-        <section class="admin-section" id="customers">
-            <div class="section-header">
-                <h1>Customers</h1>
-                <div class="header-actions">
-                    <button class="btn btn-outline">
-                        <i class="fas fa-download"></i>
-                        Export
-                    </button>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="data-table" id="customersTable">
-                            <thead>
-                                <tr>
-                                    <th>Customer</th>
-                                    <th>Phone</th>
-                                    <th>Total Orders</th>
-                                    <th>Total Spent</th>
-                                    <th>Last Order</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="loading-row">
-                                    <td colspan="6">
-                                        <div class="loading-spinner"></div>
-                                        Loading customers...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Analytics Section -->
-        <section class="admin-section" id="analytics">
-            <div class="section-header">
-                <h1>Analytics</h1>
-            </div>
-            
-            <div class="analytics-grid">
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Sales Overview</h3>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="salesChart"></canvas>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Top Products</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="topProducts">
-                            <p class="text-muted">Loading...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Settings Section -->
-        <section class="admin-section" id="settings">
-            <div class="section-header">
-                <h1>Settings</h1>
-            </div>
-            
-            <div class="settings-grid">
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Store Information</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-group">
-                            <label>Store Name</label>
-                            <input type="text" class="form-control" value="සත්සර මල් පැළ">
-                        </div>
-                        <div class="form-group">
-                            <label>Phone Number</label>
-                            <input type="text" class="form-control" value="+94 77 225 4513">
-                        </div>
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" class="form-control" value="info@sathsaraplants.com">
-                        </div>
-                        <button class="btn btn-primary">
-                            <i class="fas fa-save"></i>
-                            Save Changes
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Account Settings</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-group">
-                            <label>Change Password</label>
-                            <input type="password" class="form-control" placeholder="New password">
-                        </div>
-                        <div class="form-group">
-                            <label>Confirm Password</label>
-                            <input type="password" class="form-control" placeholder="Confirm password">
-                        </div>
-                        <button class="btn btn-primary">
-                            <i class="fas fa-key"></i>
-                            Update Password
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-    </main>
-    
-    <!-- Product Modal -->
-    <div class="modal-overlay" id="productModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="productModalTitle">Add Product</h2>
-                <button class="modal-close">
-                    <i class="fas fa-times"></i>
+        <div id="products" class="admin-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2 class="mb-0">Product Management</h2>
+                <button id="addProductBtn" class="btn-3d btn-primary" onclick="showAddProductForm()">
+                    <i class="fas fa-plus"></i> Add New Product
                 </button>
             </div>
-            <div class="modal-body">
-                <form id="productForm">
-                    <div class="form-group">
-                        <label>Product Name</label>
-                        <input type="text" class="form-control" name="name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <textarea class="form-control" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="form-row">
+            
+            <!-- Search & Filters -->
+            <div class="card-3d mb-3">
+                <div class="search-box">
+                    <input type="text" id="productSearch" placeholder="Search products by name..." 
+                           onkeyup="searchProducts()">
+                    <i class="fas fa-search"></i>
+                </div>
+                
+                <div class="filter-options">
+                    <div class="filter-chip active" onclick="filterProducts('all')">All Products</div>
+                    <div class="filter-chip" onclick="filterProducts('in_stock')">In Stock</div>
+                    <div class="filter-chip" onclick="filterProducts('out_of_stock')">Out of Stock</div>
+                    <div class="filter-chip" onclick="filterProducts('low_stock')">Low Stock</div>
+                </div>
+            </div>
+
+            <!-- Add Product Form (Initially Hidden) -->
+            <div id="addProductFormContainer" class="card-3d mb-3" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 class="mb-0">Add New Product</h3>
+                    <button class="btn-3d btn-secondary btn-small" onclick="hideAddProductForm()">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+                <form id="addProductForm" onsubmit="handleAddProduct(event)">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
                         <div class="form-group">
-                            <label>Price (රු.)</label>
-                            <input type="number" class="form-control" name="price" required>
+                            <label>Product Name *</label>
+                            <input type="text" name="name" required placeholder="e.g., Wireless Headphones">
                         </div>
+                        
                         <div class="form-group">
-                            <label>Stock</label>
-                            <input type="number" class="form-control" name="stock" required>
+                            <label>Price (Rs.) *</label>
+                            <input type="number" name="price" required placeholder="15000" min="0" step="0.01">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Stock Quantity *</label>
+                            <input type="number" name="stock" required placeholder="100" min="0" value="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Low Stock Alert</label>
+                            <input type="number" name="low_stock_alert" placeholder="10" min="0" value="5">
+                            <small style="opacity: 0.6;">Alert when stock goes below this</small>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Description *</label>
+                            <textarea name="description" required rows="2" placeholder="Brief product description..."></textarea>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Product Image *</label>
+                            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                                <label for="productImage" class="btn-3d btn-secondary" style="cursor: pointer; margin: 0;">
+                                    <i class="fas fa-image"></i> Choose File
+                                </label>
+                                <input type="file" id="productImage" accept="image/*" style="display: none;" onchange="previewImage(event)" required>
+                                <span id="fileName" style="opacity: 0.7; font-size: 0.9rem;">No file chosen</span>
+                            </div>
+                            <div id="imagePreview" class="hidden" style="margin-top: 15px; max-width: 300px;"></div>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Category</label>
-                        <select class="form-control" name="category">
-                            <option>Indoor Plants</option>
-                            <option>Outdoor Plants</option>
-                            <option>Flowering Plants</option>
-                            <option>Succulents</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Image URL</label>
-                        <input type="text" class="form-control" name="image_url">
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="button" class="btn-3d btn-secondary" onclick="hideAddProductForm()" style="flex: 1;">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn-3d btn-primary" style="flex: 2;">
+                            <i class="fas fa-save"></i> Add Product
+                        </button>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline modal-close">Cancel</button>
-                <button class="btn btn-primary" id="saveProductBtn">
-                    <i class="fas fa-save"></i>
-                    Save Product
+
+            <!-- Products List -->
+            <div class="card-3d">
+                <div id="productsTableContainer"></div>
+            </div>
+        </div>
+
+        <!-- Orders Section -->
+        <div id="orders" class="admin-section">
+            <h2 class="mb-3">Order Management</h2>
+            
+            <!-- Order Filters -->
+            <div class="card-3d mb-3">
+                <div class="search-box">
+                    <input type="text" id="orderSearch" placeholder="Search by customer name, phone, or tracking ID..." 
+                           onkeyup="searchOrders()">
+                    <i class="fas fa-search"></i>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                    <button class="btn-3d btn-secondary filter-btn active" onclick="filterOrders('all')">
+                        All Orders
+                    </button>
+                    <button class="btn-3d btn-warning filter-btn" onclick="filterOrders('Pending')">
+                        <i class="fas fa-clock"></i> Pending
+                    </button>
+                    <button class="btn-3d btn-success filter-btn" onclick="filterOrders('Confirmed')">
+                        <i class="fas fa-check"></i> Confirmed
+                    </button>
+                    <button class="btn-3d btn-danger filter-btn" onclick="filterOrders('Cancelled')">
+                        <i class="fas fa-times"></i> Cancelled
+                    </button>
+                    <button class="btn-3d btn-primary filter-btn" onclick="filterOrders('today')">
+                        <i class="fas fa-calendar-day"></i> Today
+                    </button>
+                    <button class="btn-3d btn-secondary filter-btn" onclick="filterOrders('this_week')">
+                        This Week
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Bulk Actions -->
+            <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+                <select id="bulkAction" class="form-control" style="width: 200px;">
+                    <option value="">Bulk Action</option>
+                    <option value="confirm">Confirm Selected</option>
+                    <option value="cancel">Cancel Selected</option>
+                    <option value="delete">Delete Selected</option>
+                </select>
+                <button class="btn-3d btn-primary" onclick="applyBulkAction()">
+                    Apply
+                </button>
+                <span id="selectedCount" style="opacity: 0.7; margin-left: 10px;">0 orders selected</span>
+            </div>
+            
+            <div class="card-3d">
+                <div id="ordersTableContainer"></div>
+            </div>
+        </div>
+
+        <!-- Customers Section -->
+        <div id="customers" class="admin-section">
+            <h2 class="mb-3">Customer Management</h2>
+            
+            <!-- Customer Search -->
+            <div class="card-3d mb-3">
+                <div class="search-box">
+                    <input type="text" id="customerSearch" placeholder="Search customers by name or phone number..." 
+                           onkeyup="searchCustomers()">
+                    <i class="fas fa-search"></i>
+                </div>
+            </div>
+            
+            <div class="card-3d">
+                <div id="customersTableContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-content" style="max-width: 450px;">
+            <h3 style="margin-bottom: 20px; color: var(--danger);">
+                <i class="fas fa-exclamation-triangle"></i> Confirm Delete
+            </h3>
+            <p id="deleteMessage" style="margin-bottom: 25px; opacity: 0.9;"></p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-3d btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">
+                    Cancel
+                </button>
+                <button class="btn-3d btn-danger" onclick="confirmDelete()" style="flex: 1;">
+                    <i class="fas fa-trash"></i> Delete
                 </button>
             </div>
         </div>
     </div>
-    
+
+    <!-- Edit Product Modal -->
+    <div class="modal-overlay" id="editProductModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeEditProductModal()">&times;</span>
+            <div id="editProductModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div class="modal-overlay" id="orderDetailsModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeOrderDetailsModal()">&times;</span>
+            <div id="orderDetailsModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Customer Details Modal -->
+    <div class="modal-overlay" id="customerDetailsModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeCustomerDetailsModal()">&times;</span>
+            <div id="customerDetailsModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast"></div>
+
     <!-- Scripts -->
-    <!-- Load Supabase first -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Then load config.js which initializes Supabase -->
     <script src="config.js"></script>
-    
-    <!-- Then load admin.js which uses Supabase -->
+    <script src="background.js"></script>
     <script src="admin.js"></script>
-    
-    <script>
-        // Wait for everything to load
-        window.addEventListener('DOMContentLoaded', () => {
-            console.log('🎯 Admin panel DOM loaded');
-            
-            // Navigation between sections
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const section = link.dataset.section;
-                    
-                    // Update nav links
-                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                    link.classList.add('active');
-                    
-                    // Update sections
-                    document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-                    document.getElementById(section).classList.add('active');
-                    
-                    // Close mobile sidebar
-                    document.getElementById('adminSidebar').classList.remove('active');
-                    document.getElementById('mobileOverlay').classList.remove('active');
-                });
-            });
-            
-            // Mobile menu toggle
-            document.getElementById('menuToggle')?.addEventListener('click', () => {
-                document.getElementById('adminSidebar').classList.add('active');
-                document.getElementById('mobileOverlay').classList.add('active');
-            });
-            
-            document.getElementById('sidebarClose')?.addEventListener('click', () => {
-                document.getElementById('adminSidebar').classList.remove('active');
-                document.getElementById('mobileOverlay').classList.remove('active');
-            });
-            
-            document.getElementById('mobileOverlay')?.addEventListener('click', () => {
-                document.getElementById('adminSidebar').classList.remove('active');
-                document.getElementById('mobileOverlay').classList.remove('active');
-            });
-            
-            // Product modal
-            document.getElementById('addProductBtn')?.addEventListener('click', () => {
-                document.getElementById('productModal').classList.add('active');
-            });
-            
-            document.querySelectorAll('.modal-close').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-                });
-            });
-            
-            console.log('✅ Admin panel UI initialized');
-        });
-    </script>
 </body>
 </html>
