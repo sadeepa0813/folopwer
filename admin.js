@@ -1,7 +1,7 @@
 /**
  * ════════════════════════════════════════════════════════════════
- * 3D STORE - COMPLETE ADMIN PANEL
- * Working version with all features including bulk actions
+ * 3D STORE - COMPLETE ADMIN PANEL (FIXED VERSION)
+ * Working version with all bugs fixed
  * ════════════════════════════════════════════════════════════════
  */
 
@@ -17,6 +17,9 @@ let selectedOrders = new Set();
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 Admin Panel Loading...');
+    
+    // Setup mobile menu event listeners
+    setupMobileMenu();
     
     // Wait for Supabase client
     await waitForSupabase();
@@ -136,8 +139,12 @@ function showSection(sectionId) {
         };
         
         if (sectionMap[sectionId] !== undefined) {
-            navItems[sectionMap[sectionId]]?.classList.add('active');
-            mobileNavItems[sectionMap[sectionId]]?.classList.add('active');
+            if (navItems[sectionMap[sectionId]]) {
+                navItems[sectionMap[sectionId]].classList.add('active');
+            }
+            if (mobileNavItems[sectionMap[sectionId]]) {
+                mobileNavItems[sectionMap[sectionId]].classList.add('active');
+            }
         }
         
         // Load data for section
@@ -151,6 +158,9 @@ function showSection(sectionId) {
             loadCustomers();
         }
     }
+    
+    // Close mobile menu if open
+    closeMobileMenu();
 }
 
 // ==================== DASHBOARD ====================
@@ -647,7 +657,7 @@ function openEditProductModal(product) {
                 <button type="button" class="btn-3d btn-secondary" onclick="closeEditProductModal()" style="flex: 1;">
                     Cancel
                 </button>
-                <button type="submit" class="btn-3d btn-primary" style="flex: 1;">
+                <button type="submit" class="btn-3d btn-primary" style="flex: 1;" id="editProductSubmitBtn">
                     Update Product
                 </button>
             </div>
@@ -678,10 +688,10 @@ function previewEditImage(event) {
 async function handleEditProduct(event) {
     event.preventDefault();
     const form = event.target;
-    const submitBtn = form.querySelector('button[type="submit"]');
+    const submitBtn = document.getElementById('editProductSubmitBtn') || form.querySelector('button[type="submit"]');
     
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Updating...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
     
     try {
         const name = form.name.value.trim();
@@ -738,7 +748,7 @@ async function handleEditProduct(event) {
                     .from('product-images')
                     .remove([oldFileName]);
             } catch (err) {
-                console.log('Could not delete old image');
+                console.log('Could not delete old image:', err);
             }
         }
         
@@ -751,10 +761,10 @@ async function handleEditProduct(event) {
         
     } catch (error) {
         console.error('❌ Edit product error:', error);
-        showToast('❌ Failed to update product', 'error');
+        showToast('❌ Failed to update product: ' + error.message, 'error');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Update Product';
+        submitBtn.innerHTML = 'Update Product';
     }
 }
 
@@ -812,6 +822,9 @@ function displayOrders(orders) {
                 <div class="empty-state-message">
                     ${currentFilter === 'today' ? 'No orders today' : 
                       currentFilter === 'this_week' ? 'No orders this week' : 
+                      currentFilter === 'Pending' ? 'No pending orders' :
+                      currentFilter === 'Confirmed' ? 'No confirmed orders' :
+                      currentFilter === 'Cancelled' ? 'No cancelled orders' :
                       'No orders to display'}
                 </div>
             </div>
@@ -875,20 +888,20 @@ function displayOrders(orders) {
                 <td>
                     <div class="order-actions">
                         <button class="order-action-btn view-btn" 
-                                onclick='viewOrderDetails(${JSON.stringify(order).replace(/'/g, "&#39;")})' 
+                                onclick='viewOrderDetails(${JSON.stringify(order).replace(/'/g, "&#39;")}); event.stopPropagation()' 
                                 title="View Details">
                             <i class="fas fa-eye"></i>
                         </button>
                         ${order.status === 'Pending' ? `
                             <button class="order-action-btn confirm-btn" 
-                                    onclick="updateOrderStatus('${order.tracking_id}', 'Confirmed')"
+                                    onclick="updateOrderStatus('${order.tracking_id}', 'Confirmed'); event.stopPropagation()"
                                     title="Confirm Order">
                                 <i class="fas fa-check"></i>
                             </button>
                         ` : ''}
                         ${order.status !== 'Cancelled' ? `
                             <button class="order-action-btn cancel-btn" 
-                                    onclick="updateOrderStatus('${order.tracking_id}', 'Cancelled')"
+                                    onclick="updateOrderStatus('${order.tracking_id}', 'Cancelled'); event.stopPropagation()"
                                     title="Cancel Order">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -931,6 +944,7 @@ function displayOrders(orders) {
     const quickConfirmBtn = document.getElementById('quickConfirmBtn');
     if (quickConfirmBtn) {
         quickConfirmBtn.style.display = selectedOrders.size > 0 ? 'flex' : 'none';
+        quickConfirmBtn.innerHTML = `<i class="fas fa-check"></i> <span style="font-size: 0.8rem; margin-left: 5px;">${selectedOrders.size}</span>`;
     }
 }
 
@@ -952,7 +966,7 @@ function filterOrders(status) {
     });
     
     // Find and activate the clicked button
-    const clickedBtn = event.target.closest('.filter-btn');
+    const clickedBtn = event?.target?.closest?.('.filter-btn');
     if (clickedBtn) {
         clickedBtn.classList.add('active');
     }
@@ -1118,9 +1132,10 @@ function updateSelectedCount() {
 }
 
 async function applyBulkAction() {
-    const bulkAction = document.getElementById('bulkAction').value;
+    const bulkAction = document.getElementById('bulkAction');
+    const actionValue = bulkAction ? bulkAction.value : '';
     
-    if (!bulkAction) {
+    if (!actionValue) {
         showToast('Please select a bulk action', 'warning');
         return;
     }
@@ -1143,7 +1158,7 @@ async function applyBulkAction() {
         }
     };
     
-    const action = actionMap[bulkAction];
+    const action = actionMap[actionValue];
     if (!action) return;
     
     if (!confirm(`${action.confirmText}\n\nThis will affect ${selectedOrders.size} order(s).`)) {
@@ -1199,7 +1214,9 @@ async function applyBulkAction() {
         clearSelection();
         
         // Reset bulk action dropdown
-        document.getElementById('bulkAction').value = '';
+        if (bulkAction) {
+            bulkAction.value = '';
+        }
         
     } catch (error) {
         console.error('Bulk action error:', error);
@@ -1213,7 +1230,10 @@ function quickConfirmAll() {
         return;
     }
     
-    document.getElementById('bulkAction').value = 'confirm';
+    const bulkAction = document.getElementById('bulkAction');
+    if (bulkAction) {
+        bulkAction.value = 'confirm';
+    }
     applyBulkAction();
 }
 
@@ -1367,9 +1387,16 @@ async function loadCustomers() {
     try {
         console.log('👥 Loading customers...');
         
+        // Get customers from orders
+        const { data: orders, error } = await window.supabaseClient
+            .from('orders')
+            .select('*');
+        
+        if (error) throw error;
+        
         // Extract unique customers from orders
         const uniqueCustomers = {};
-        allOrders.forEach(order => {
+        orders.forEach(order => {
             const key = `${order.phone_number}-${order.customer_name}`;
             if (!uniqueCustomers[key]) {
                 uniqueCustomers[key] = {
@@ -1857,6 +1884,24 @@ function setupRealtime() {
 }
 
 // ==================== MOBILE MENU FUNCTIONS ====================
+function setupMobileMenu() {
+    // Setup mobile menu click handlers
+    document.querySelectorAll('.mobile-nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const text = this.textContent || this.innerText;
+            let sectionId = 'dashboard';
+            
+            if (text.includes('Dashboard')) sectionId = 'dashboard';
+            else if (text.includes('Products')) sectionId = 'products';
+            else if (text.includes('Orders')) sectionId = 'orders';
+            else if (text.includes('Customers')) sectionId = 'customers';
+            
+            showSection(sectionId);
+            closeMobileMenu();
+        });
+    });
+}
+
 function toggleMobileMenu() {
     const hamburger = document.querySelector('.hamburger-menu');
     const mobileNav = document.querySelector('.mobile-nav');
