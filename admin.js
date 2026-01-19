@@ -1,7 +1,7 @@
 /**
  * ════════════════════════════════════════════════════════════════
  * 3D STORE - COMPLETE ADMIN PANEL
- * Working version with all features
+ * Working version with all features including bulk actions
  * ════════════════════════════════════════════════════════════════
  */
 
@@ -11,14 +11,12 @@ let deleteTarget = null;
 let editTarget = null;
 let allOrders = [];
 let allProducts = [];
+let allCustomers = [];
 let selectedOrders = new Set();
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 Admin Panel Loading...');
-    
-    // Setup navigation
-    setupNavigation();
     
     // Wait for Supabase client
     await waitForSupabase();
@@ -86,7 +84,8 @@ async function loadInitialData() {
         await Promise.all([
             loadDashboardStats(),
             loadProducts(),
-            loadOrders()
+            loadOrders(),
+            loadCustomers()
         ]);
         
         // Setup real-time
@@ -105,36 +104,41 @@ function redirectToLogin() {
 }
 
 // ==================== NAVIGATION ====================
-function setupNavigation() {
-    document.querySelectorAll('.nav-item[data-section]').forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Remove active from all
-            document.querySelectorAll('.nav-item').forEach(nav => {
-                nav.classList.remove('active');
-            });
-            
-            // Add active to clicked
-            this.classList.add('active');
-            
-            // Show section
-            const section = this.getAttribute('data-section');
-            showSection(section);
-        });
-    });
-}
-
 function showSection(sectionId) {
     // Hide all sections
     document.querySelectorAll('.admin-section').forEach(section => {
         section.classList.remove('active');
     });
     
+    // Remove active from all nav items
+    document.querySelectorAll('.nav-item').forEach(nav => {
+        nav.classList.remove('active');
+    });
+    
+    // Remove active from all mobile nav items
+    document.querySelectorAll('.mobile-nav-item').forEach(nav => {
+        nav.classList.remove('active');
+    });
+    
     // Show selected section
     const targetSection = document.getElementById(sectionId);
     if (targetSection) {
         targetSection.classList.add('active');
+        
+        // Activate corresponding nav item
+        const navItems = document.querySelectorAll('.nav-item');
+        const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
+        const sectionMap = {
+            'dashboard': 0,
+            'products': 1,
+            'orders': 2,
+            'customers': 3
+        };
+        
+        if (sectionMap[sectionId] !== undefined) {
+            navItems[sectionMap[sectionId]]?.classList.add('active');
+            mobileNavItems[sectionMap[sectionId]]?.classList.add('active');
+        }
         
         // Load data for section
         if (sectionId === 'dashboard') {
@@ -143,6 +147,8 @@ function showSection(sectionId) {
             loadProducts();
         } else if (sectionId === 'orders') {
             loadOrders();
+        } else if (sectionId === 'customers') {
+            loadCustomers();
         }
     }
 }
@@ -176,6 +182,14 @@ async function loadDashboardStats() {
             .select('*', { count: 'exact', head: true })
             .gte('created_at', today.toISOString());
         
+        const { data: todayRevenueData } = await window.supabaseClient
+            .from('orders')
+            .select('total')
+            .eq('status', 'Confirmed')
+            .gte('created_at', today.toISOString());
+        
+        const todayRevenue = todayRevenueData?.reduce((sum, order) => sum + (order.total || 0), 0) || 0;
+        
         // Stock info
         const { data: products } = await window.supabaseClient
             .from('products')
@@ -197,7 +211,11 @@ async function loadDashboardStats() {
         document.getElementById('pendingOrders').textContent = pendingRes.count || 0;
         document.getElementById('totalRevenue').textContent = `Rs. ${totalRevenue.toLocaleString()}`;
         document.getElementById('todayOrders').textContent = `Today: ${todayOrders || 0}`;
+        document.getElementById('todayRevenue').textContent = `Today: Rs. ${todayRevenue.toLocaleString()}`;
         document.getElementById('stockInfo').textContent = `${inStock} in stock, ${lowStock} low, ${outOfStock} out`;
+        
+        // Update pending badges
+        updatePendingBadge(pendingRes.count || 0);
         
         // Load recent orders
         await loadRecentOrders();
@@ -206,6 +224,21 @@ async function loadDashboardStats() {
         
     } catch (error) {
         console.error('❌ Dashboard error:', error);
+    }
+}
+
+function updatePendingBadge(count) {
+    const desktopBadge = document.getElementById('pendingBadge');
+    const mobileBadge = document.getElementById('mobilePendingBadge');
+    
+    if (desktopBadge) {
+        desktopBadge.textContent = count;
+        desktopBadge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+    
+    if (mobileBadge) {
+        mobileBadge.textContent = count;
+        mobileBadge.style.display = count > 0 ? 'inline-block' : 'none';
     }
 }
 
@@ -220,20 +253,33 @@ async function loadRecentOrders() {
         const container = document.getElementById('recentOrdersTable');
         
         if (!orders || orders.length === 0) {
-            container.innerHTML = '<p style="text-align: center; opacity: 0.6; padding: 20px;">No orders yet</p>';
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <div class="empty-state-title">No Orders Yet</div>
+                    <div class="empty-state-message">When customers place orders, they'll appear here</div>
+                </div>
+            `;
             return;
         }
         
         const html = orders.map(order => `
             <tr onclick="viewOrderDetails(${JSON.stringify(order).replace(/'/g, "&#39;")})" style="cursor: pointer;">
-                <td class="mono" style="font-size: 0.85rem;">${order.tracking_id}</td>
-                <td>${order.customer_name}</td>
+                <td>
+                    <div class="tracking-id" onclick="copyTrackingId('${order.tracking_id}', event)">
+                        <span class="mono" style="font-size: 0.9rem;">${order.tracking_id}</span>
+                        <button class="copy-btn" title="Copy Tracking ID">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </td>
+                <td><strong>${order.customer_name}</strong></td>
                 <td>
                     <a href="tel:${order.phone_number}" class="customer-phone-link" onclick="event.stopPropagation()">
                         ${order.phone_number}
                     </a>
                 </td>
-                <td class="mono">Rs. ${order.total.toLocaleString()}</td>
+                <td class="mono"><strong>Rs. ${order.total.toLocaleString()}</strong></td>
                 <td><span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span></td>
             </tr>
         `).join('');
@@ -288,11 +334,11 @@ function displayProducts(products) {
     
     if (!products || products.length === 0) {
         container.innerHTML = `
-            <div style="text-align: center; padding: 40px;">
-                <div style="font-size: 3rem; margin-bottom: 15px;">📭</div>
-                <h3 style="margin-bottom: 10px;">No Products Found</h3>
-                <p style="opacity: 0.7; margin-bottom: 20px;">Add your first product to get started</p>
-                <button class="btn-3d btn-primary" onclick="showAddProductForm()">
+            <div class="empty-state">
+                <div class="empty-state-icon">📦</div>
+                <div class="empty-state-title">No Products Found</div>
+                <div class="empty-state-message">Add your first product to get started</div>
+                <button class="btn-3d btn-primary" onclick="showAddProductForm()" style="margin-top: 20px;">
                     <i class="fas fa-plus"></i> Add First Product
                 </button>
             </div>
@@ -305,33 +351,36 @@ function displayProducts(products) {
             <td>
                 <img src="${product.image_url || 'https://via.placeholder.com/60'}" 
                      alt="${product.name}"
-                     style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
+                     style="width: 60px; height: 60px; object-fit: cover; border-radius: 10px;"
                      onerror="this.src='https://via.placeholder.com/60'">
             </td>
             <td>
-                <strong>${product.name}</strong>
+                <strong style="color: var(--primary);">${product.name}</strong>
+                <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 3px;">
+                    ${product.description ? product.description.substring(0, 50) + '...' : 'No description'}
+                </div>
                 ${(product.stock || 0) <= 5 && (product.stock || 0) > 0 ? 
-                    '<br><small style="color: var(--warning); font-size: 0.8rem;">⚠️ Low stock</small>' : ''}
+                    '<div style="color: var(--warning); font-size: 0.8rem; margin-top: 5px;">⚠️ Low stock warning</div>' : ''}
             </td>
-            <td class="mono">Rs. ${(product.price || 0).toLocaleString()}</td>
+            <td class="mono" style="font-weight: 700; color: var(--success);">
+                Rs. ${(product.price || 0).toLocaleString()}
+            </td>
             <td>
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
                     <input type="number" 
                            class="stock-input" 
                            value="${product.stock || 0}" 
                            min="0"
                            onchange="updateStock(${product.id}, this.value)"
-                           style="${(product.stock || 0) === 0 ? 'border-color: var(--danger);' : ''}">
+                           style="${(product.stock || 0) === 0 ? 'border-color: var(--danger); background: rgba(239, 68, 68, 0.1);' : ''}">
                     <span class="stock-badge ${getStockClass(product.stock || 0)}">
+                        <i class="fas fa-${getStockIcon(product.stock || 0)}"></i>
                         ${getStockText(product.stock || 0)}
                     </span>
                 </div>
             </td>
-            <td style="max-width: 200px; font-size: 0.9rem; opacity: 0.8;">
-                ${product.description || 'No description'}
-            </td>
             <td>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <button class="btn-3d btn-primary btn-small" 
                             onclick='openEditProductModal(${JSON.stringify(product).replace(/'/g, "&#39;")})'
                             title="Edit Product">
@@ -353,10 +402,9 @@ function displayProducts(products) {
                 <thead>
                     <tr>
                         <th>Image</th>
-                        <th>Name</th>
+                        <th>Product</th>
                         <th>Price</th>
                         <th>Stock</th>
-                        <th>Description</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -370,6 +418,12 @@ function getStockClass(stock) {
     if (stock === 0) return 'stock-out';
     if (stock <= 5) return 'stock-low';
     return 'stock-in';
+}
+
+function getStockIcon(stock) {
+    if (stock === 0) return 'times-circle';
+    if (stock <= 5) return 'exclamation-circle';
+    return 'check-circle';
 }
 
 function getStockText(stock) {
@@ -387,8 +441,6 @@ async function updateStock(productId, newStock) {
     }
     
     try {
-        console.log(`📦 Updating stock for product ${productId} to ${stock}`);
-        
         const { error } = await window.supabaseClient
             .from('products')
             .update({ 
@@ -440,8 +492,7 @@ function previewImage(event) {
     const fileName = document.getElementById('fileName');
     
     if (file) {
-        // Basic validation
-        const maxSize = 5 * 1024 * 1024; // 5MB
+        const maxSize = 5 * 1024 * 1024;
         if (file.size > maxSize) {
             showToast('❌ Image must be less than 5MB', 'error');
             event.target.value = '';
@@ -460,9 +511,14 @@ function previewImage(event) {
         const reader = new FileReader();
         reader.onload = function(e) {
             preview.innerHTML = `
-                <img src="${e.target.result}" 
-                     alt="Preview" 
-                     style="max-width: 100%; max-height: 200px; border-radius: 10px;">
+                <div style="position: relative;">
+                    <img src="${e.target.result}" 
+                         alt="Preview" 
+                         style="max-width: 100%; max-height: 250px; border-radius: 12px; border: 2px solid rgba(16, 185, 129, 0.3);">
+                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 6px; font-size: 0.85rem;">
+                        Preview
+                    </div>
+                </div>
             `;
             preview.classList.remove('hidden');
         };
@@ -475,12 +531,10 @@ async function handleAddProduct(event) {
     const form = event.target;
     const submitBtn = form.querySelector('button[type="submit"]');
     
-    // Disable button
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
     
     try {
-        // Get form data
         const productData = {
             name: form.name.value.trim(),
             price: parseFloat(form.price.value),
@@ -488,7 +542,6 @@ async function handleAddProduct(event) {
             description: form.description.value.trim()
         };
         
-        // Basic validation
         if (!productData.name || productData.name.length < 2) {
             throw new Error('Product name is required (min 2 characters)');
         }
@@ -501,7 +554,6 @@ async function handleAddProduct(event) {
             throw new Error('Stock cannot be negative');
         }
         
-        // Get image file
         const imageFile = document.getElementById('productImage').files[0];
         if (!imageFile) {
             throw new Error('Please select a product image');
@@ -509,7 +561,6 @@ async function handleAddProduct(event) {
         
         console.log('📤 Starting product upload...');
         
-        // 1. Upload image to storage
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `product_${Date.now()}.${fileExt}`;
         
@@ -517,22 +568,11 @@ async function handleAddProduct(event) {
             .from('product-images')
             .upload(fileName, imageFile);
         
-        if (uploadError) {
-            console.error('Upload error:', uploadError);
-            throw new Error('Failed to upload image: ' + uploadError.message);
-        }
+        if (uploadError) throw uploadError;
         
-        console.log('✅ Image uploaded:', fileName);
-        
-        // 2. Get public URL
         const { data: { publicUrl } } = window.supabaseClient.storage
             .from('product-images')
             .getPublicUrl(fileName);
-        
-        console.log('✅ Image URL:', publicUrl);
-        
-        // 3. Insert product into database
-        console.log('📝 Creating product record...');
         
         const { data, error } = await window.supabaseClient
             .from('products')
@@ -547,28 +587,10 @@ async function handleAddProduct(event) {
             }])
             .select();
         
-        if (error) {
-            console.error('Database error:', error);
-            
-            // Try to delete uploaded image if product creation fails
-            try {
-                await window.supabaseClient.storage
-                    .from('product-images')
-                    .remove([fileName]);
-            } catch (deleteError) {
-                console.log('Could not delete uploaded image:', deleteError);
-            }
-            
-            throw new Error('Failed to save product: ' + error.message);
-        }
+        if (error) throw error;
         
-        console.log('✅ Product created successfully:', data);
         showToast('✅ Product added successfully!', 'success');
-        
-        // Reset form
         hideAddProductForm();
-        
-        // Reload products
         await loadProducts();
         await loadDashboardStats();
         
@@ -588,7 +610,9 @@ function openEditProductModal(product) {
     const modalBody = document.getElementById('editProductModalBody');
     
     modalBody.innerHTML = `
-        <h3 style="margin-bottom: 20px;">Edit Product</h3>
+        <h3 style="margin-bottom: 20px; color: var(--primary);">
+            <i class="fas fa-edit"></i> Edit Product
+        </h3>
         <form id="editProductForm" onsubmit="handleEditProduct(event)">
             <div class="form-group">
                 <label>Product Name *</label>
@@ -770,6 +794,10 @@ function displayOrders(orders) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         filteredOrders = orders.filter(o => new Date(o.created_at) >= today);
+    } else if (currentFilter === 'this_week') {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        filteredOrders = orders.filter(o => new Date(o.created_at) >= weekAgo);
     } else if (currentFilter !== 'all') {
         filteredOrders = orders.filter(o => o.status === currentFilter);
     }
@@ -778,68 +806,108 @@ function displayOrders(orders) {
     
     if (!filteredOrders || filteredOrders.length === 0) {
         container.innerHTML = `
-            <div style="text-align: center; padding: 40px;">
-                <div style="font-size: 3rem; margin-bottom: 15px;">📭</div>
-                <h3 style="margin-bottom: 10px;">No Orders Found</h3>
-                <p style="opacity: 0.7;">${currentFilter === 'today' ? 'No orders today' : 'No orders to display'}</p>
+            <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <div class="empty-state-title">No Orders Found</div>
+                <div class="empty-state-message">
+                    ${currentFilter === 'today' ? 'No orders today' : 
+                      currentFilter === 'this_week' ? 'No orders this week' : 
+                      'No orders to display'}
+                </div>
             </div>
         `;
         return;
     }
     
-    const html = filteredOrders.map(order => `
-        <tr>
-            <td class="mono" style="font-size: 0.85rem;">${order.tracking_id}</td>
-            <td><strong>${order.customer_name}</strong></td>
-            <td>
-                <a href="tel:${order.phone_number}" class="customer-phone-link">
-                    ${order.phone_number}
-                </a>
-            </td>
-            <td>${order.product_name}</td>
-            <td class="mono">${order.quantity}</td>
-            <td class="mono"><strong style="color: var(--success);">Rs. ${order.total.toLocaleString()}</strong></td>
-            <td><span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span></td>
-            <td style="font-size: 0.85rem; opacity: 0.7;">
-                ${new Date(order.created_at).toLocaleDateString()}
-                ${isToday(order.created_at) ? '<span class="today-badge">Today</span>' : ''}
-            </td>
-            <td>
-                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                    <button class="order-action-btn view-btn" 
-                            onclick='viewOrderDetails(${JSON.stringify(order).replace(/'/g, "&#39;")})' 
-                            title="View Details">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    ${order.status === 'Pending' ? `
-                        <button class="order-action-btn confirm-btn" 
-                                onclick="updateOrderStatus('${order.tracking_id}', 'Confirmed')"
-                                title="Confirm Order">
-                            <i class="fas fa-check"></i>
+    const html = filteredOrders.map(order => {
+        const isSelected = selectedOrders.has(order.tracking_id);
+        return `
+            <tr class="${isSelected ? 'selected-order' : ''}" onclick="handleOrderRowClick('${order.tracking_id}', event)">
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" 
+                               ${isSelected ? 'checked' : ''}
+                               onclick="toggleOrderSelection('${order.tracking_id}'); event.stopPropagation()"
+                               style="width: 18px; height: 18px; cursor: pointer;">
+                        <div class="tracking-id" onclick="copyTrackingId('${order.tracking_id}', event)">
+                            <span class="mono" style="font-size: 0.9rem;">${order.tracking_id}</span>
+                            <button class="copy-btn" title="Copy Tracking ID">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <strong>${order.customer_name}</strong>
+                    <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 3px;">
+                        ${order.address ? order.address.substring(0, 30) + '...' : 'No address'}
+                    </div>
+                </td>
+                <td>
+                    <a href="tel:${order.phone_number}" class="customer-phone-link" onclick="event.stopPropagation()">
+                        <i class="fas fa-phone"></i> ${order.phone_number}
+                    </a>
+                </td>
+                <td>
+                    <strong>${order.product_name}</strong>
+                    <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 3px;">
+                        Qty: ${order.quantity}
+                    </div>
+                </td>
+                <td class="mono" style="font-weight: 700; color: var(--success);">
+                    Rs. ${order.total.toLocaleString()}
+                </td>
+                <td>
+                    <span class="status-badge status-${order.status.toLowerCase()}">
+                        <i class="fas fa-${getStatusIcon(order.status)}"></i>
+                        ${order.status}
+                    </span>
+                </td>
+                <td style="font-size: 0.9rem; opacity: 0.8;">
+                    ${new Date(order.created_at).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })}
+                    ${isToday(order.created_at) ? '<span class="today-badge">Today</span>' : ''}
+                </td>
+                <td>
+                    <div class="order-actions">
+                        <button class="order-action-btn view-btn" 
+                                onclick='viewOrderDetails(${JSON.stringify(order).replace(/'/g, "&#39;")})' 
+                                title="View Details">
+                            <i class="fas fa-eye"></i>
                         </button>
-                    ` : ''}
-                    ${order.status !== 'Cancelled' ? `
-                        <button class="order-action-btn cancel-btn" 
-                                onclick="updateOrderStatus('${order.tracking_id}', 'Cancelled')"
-                                title="Cancel Order">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    ` : ''}
-                </div>
-            </td>
-        </tr>
-    `).join('');
+                        ${order.status === 'Pending' ? `
+                            <button class="order-action-btn confirm-btn" 
+                                    onclick="updateOrderStatus('${order.tracking_id}', 'Confirmed')"
+                                    title="Confirm Order">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        ` : ''}
+                        ${order.status !== 'Cancelled' ? `
+                            <button class="order-action-btn cancel-btn" 
+                                    onclick="updateOrderStatus('${order.tracking_id}', 'Cancelled')"
+                                    title="Cancel Order">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
     
     container.innerHTML = `
         <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
-                        <th>Tracking ID</th>
+                        <th style="width: 220px;">Selection & Tracking ID</th>
                         <th>Customer</th>
                         <th>Phone</th>
                         <th>Product</th>
-                        <th>Qty</th>
                         <th>Total</th>
                         <th>Status</th>
                         <th>Date</th>
@@ -850,6 +918,29 @@ function displayOrders(orders) {
             </table>
         </div>
     `;
+    
+    // Update select all checkbox state
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) {
+        const allFilteredSelected = filteredOrders.length > 0 && 
+            filteredOrders.every(order => selectedOrders.has(order.tracking_id));
+        selectAllCheckbox.checked = allFilteredSelected;
+    }
+    
+    // Show/hide quick confirm button
+    const quickConfirmBtn = document.getElementById('quickConfirmBtn');
+    if (quickConfirmBtn) {
+        quickConfirmBtn.style.display = selectedOrders.size > 0 ? 'flex' : 'none';
+    }
+}
+
+function getStatusIcon(status) {
+    switch(status) {
+        case 'Pending': return 'clock';
+        case 'Confirmed': return 'check-circle';
+        case 'Cancelled': return 'times-circle';
+        default: return 'question-circle';
+    }
 }
 
 function filterOrders(status) {
@@ -895,9 +986,7 @@ async function updateOrderStatus(trackingId, newStatus) {
     if (!confirm(`Are you sure you want to ${action} this order?`)) return;
     
     try {
-        console.log(`🔄 Updating order ${trackingId} to ${newStatus}`);
-        
-        const { data, error } = await window.supabaseClient
+        const { error } = await window.supabaseClient
             .from('orders')
             .update({ 
                 status: newStatus,
@@ -905,12 +994,8 @@ async function updateOrderStatus(trackingId, newStatus) {
             })
             .eq('tracking_id', trackingId);
         
-        if (error) {
-            console.error('Update error:', error);
-            throw error;
-        }
+        if (error) throw error;
         
-        console.log('✅ Order updated successfully');
         showToast(`✅ Order ${newStatus.toLowerCase()}!`, 'success');
         
         // Update local data
@@ -918,6 +1003,12 @@ async function updateOrderStatus(trackingId, newStatus) {
         if (orderIndex !== -1) {
             allOrders[orderIndex].status = newStatus;
             allOrders[orderIndex].updated_at = new Date().toISOString();
+        }
+        
+        // Remove from selection if selected
+        if (selectedOrders.has(trackingId)) {
+            selectedOrders.delete(trackingId);
+            updateSelectedCount();
         }
         
         // Refresh display
@@ -930,95 +1021,336 @@ async function updateOrderStatus(trackingId, newStatus) {
     }
 }
 
+// ==================== ORDER SELECTION & BULK ACTIONS ====================
+function toggleOrderSelection(trackingId) {
+    if (selectedOrders.has(trackingId)) {
+        selectedOrders.delete(trackingId);
+    } else {
+        selectedOrders.add(trackingId);
+    }
+    updateSelectedCount();
+    displayOrders(allOrders);
+}
+
+function handleOrderRowClick(trackingId, event) {
+    // Only handle row click if not clicking on checkbox or action button
+    if (event.target.type === 'checkbox' || 
+        event.target.closest('button') || 
+        event.target.closest('.tracking-id') ||
+        event.target.closest('.order-actions')) {
+        return;
+    }
+    
+    // Otherwise view order details
+    const order = allOrders.find(o => o.tracking_id === trackingId);
+    if (order) {
+        viewOrderDetails(order);
+    }
+}
+
+function toggleSelectAll() {
+    const checkbox = document.getElementById('selectAllCheckbox');
+    const isChecked = !checkbox.checked;
+    checkbox.checked = isChecked;
+    
+    // Get filtered orders based on current filter
+    let filteredOrders = allOrders;
+    if (currentFilter === 'today') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        filteredOrders = allOrders.filter(o => new Date(o.created_at) >= today);
+    } else if (currentFilter === 'this_week') {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        filteredOrders = allOrders.filter(o => new Date(o.created_at) >= weekAgo);
+    } else if (currentFilter !== 'all') {
+        filteredOrders = allOrders.filter(o => o.status === currentFilter);
+    }
+    
+    if (isChecked) {
+        // Add all filtered orders to selection
+        filteredOrders.forEach(order => {
+            selectedOrders.add(order.tracking_id);
+        });
+    } else {
+        // Remove all filtered orders from selection
+        filteredOrders.forEach(order => {
+            selectedOrders.delete(order.tracking_id);
+        });
+    }
+    
+    updateSelectedCount();
+    displayOrders(allOrders);
+}
+
+function clearSelection() {
+    selectedOrders.clear();
+    updateSelectedCount();
+    
+    // Uncheck select all checkbox
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+    }
+    
+    // Hide quick confirm button
+    const quickConfirmBtn = document.getElementById('quickConfirmBtn');
+    if (quickConfirmBtn) {
+        quickConfirmBtn.style.display = 'none';
+    }
+    
+    displayOrders(allOrders);
+    showToast('Selection cleared', 'info');
+}
+
+function updateSelectedCount() {
+    const countElement = document.getElementById('selectedCount');
+    if (countElement) {
+        countElement.innerHTML = `<i class="fas fa-check-square"></i> ${selectedOrders.size} order(s) selected`;
+        
+        // Update quick confirm button
+        const quickConfirmBtn = document.getElementById('quickConfirmBtn');
+        if (quickConfirmBtn) {
+            quickConfirmBtn.style.display = selectedOrders.size > 0 ? 'flex' : 'none';
+            quickConfirmBtn.innerHTML = `<i class="fas fa-check"></i> <span style="font-size: 0.8rem; margin-left: 5px;">${selectedOrders.size}</span>`;
+        }
+    }
+}
+
+async function applyBulkAction() {
+    const bulkAction = document.getElementById('bulkAction').value;
+    
+    if (!bulkAction) {
+        showToast('Please select a bulk action', 'warning');
+        return;
+    }
+    
+    if (selectedOrders.size === 0) {
+        showToast('No orders selected', 'warning');
+        return;
+    }
+    
+    const actionMap = {
+        'confirm': { 
+            status: 'Confirmed', 
+            message: 'confirm',
+            confirmText: 'Are you sure you want to confirm these orders?'
+        },
+        'cancel': { 
+            status: 'Cancelled', 
+            message: 'cancel',
+            confirmText: 'Are you sure you want to cancel these orders?'
+        }
+    };
+    
+    const action = actionMap[bulkAction];
+    if (!action) return;
+    
+    if (!confirm(`${action.confirmText}\n\nThis will affect ${selectedOrders.size} order(s).`)) {
+        return;
+    }
+    
+    try {
+        let successCount = 0;
+        let failCount = 0;
+        
+        // Show loading
+        showToast(`Processing ${selectedOrders.size} order(s)...`, 'info');
+        
+        // Process each selected order
+        for (const trackingId of selectedOrders) {
+            try {
+                const { error } = await window.supabaseClient
+                    .from('orders')
+                    .update({ 
+                        status: action.status,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('tracking_id', trackingId);
+                
+                if (error) throw error;
+                
+                // Update local data
+                const orderIndex = allOrders.findIndex(o => o.tracking_id === trackingId);
+                if (orderIndex !== -1) {
+                    allOrders[orderIndex].status = action.status;
+                    allOrders[orderIndex].updated_at = new Date().toISOString();
+                }
+                
+                successCount++;
+            } catch (error) {
+                console.error(`Failed to update order ${trackingId}:`, error);
+                failCount++;
+            }
+        }
+        
+        // Show result
+        if (successCount > 0) {
+            showToast(`✅ ${action.message}ed ${successCount} order(s) successfully`, 'success');
+            displayOrders(allOrders);
+            await loadDashboardStats();
+        }
+        
+        if (failCount > 0) {
+            showToast(`❌ Failed to ${action.message} ${failCount} order(s)`, 'error');
+        }
+        
+        // Clear selection
+        clearSelection();
+        
+        // Reset bulk action dropdown
+        document.getElementById('bulkAction').value = '';
+        
+    } catch (error) {
+        console.error('Bulk action error:', error);
+        showToast('Failed to perform bulk action', 'error');
+    }
+}
+
+function quickConfirmAll() {
+    if (selectedOrders.size === 0) {
+        showToast('No orders selected', 'warning');
+        return;
+    }
+    
+    document.getElementById('bulkAction').value = 'confirm';
+    applyBulkAction();
+}
+
+// ==================== TRACKING ID COPY ====================
+function copyTrackingId(trackingId, event) {
+    if (event) event.stopPropagation();
+    
+    navigator.clipboard.writeText(trackingId)
+        .then(() => {
+            showToast('📋 Tracking ID copied to clipboard!', 'success');
+            
+            // Visual feedback
+            const copyBtn = event ? event.target.closest('.tracking-id') : null;
+            if (copyBtn) {
+                copyBtn.style.color = 'var(--success)';
+                setTimeout(() => {
+                    copyBtn.style.color = '';
+                }, 1000);
+            }
+        })
+        .catch(err => {
+            console.error('Copy failed:', err);
+            showToast('❌ Failed to copy', 'error');
+        });
+}
+
+// ==================== VIEW ORDER DETAILS ====================
 function viewOrderDetails(order) {
     const modal = document.getElementById('orderDetailsModal');
     const modalBody = document.getElementById('orderDetailsModalBody');
     
     modalBody.innerHTML = `
-        <h3 style="margin-bottom: 20px; color: var(--primary);">Order Details</h3>
+        <h3 style="margin-bottom: 25px; color: var(--primary); display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-receipt"></i> Order Details
+        </h3>
         
-        <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.05)); 
+                  border: 1px solid rgba(16, 185, 129, 0.2); padding: 25px; border-radius: 15px; margin-bottom: 25px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <div>
-                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Tracking ID</p>
-                    <p class="mono" style="font-weight: 600; color: var(--accent);">${order.tracking_id}</p>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Tracking ID</p>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <p class="mono" style="font-weight: 700; color: var(--accent); font-size: 1.1rem;">${order.tracking_id}</p>
+                        <button class="btn-3d btn-small btn-secondary" onclick="copyTrackingId('${order.tracking_id}')" style="padding: 6px 12px;">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
                 </div>
                 <div>
-                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Status</p>
-                    <span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Status</p>
+                    <span class="status-badge status-${order.status.toLowerCase()}" style="font-size: 0.9rem; padding: 8px 16px;">
+                        <i class="fas fa-${getStatusIcon(order.status)}"></i>
+                        ${order.status}
+                    </span>
                 </div>
                 <div>
-                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Customer Name</p>
-                    <p style="font-weight: 600;">${order.customer_name}</p>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Customer Name</p>
+                    <p style="font-weight: 700; font-size: 1.1rem;">${order.customer_name}</p>
                 </div>
                 <div>
-                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Phone Number</p>
-                    <p class="mono" style="font-weight: 600;">
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Phone Number</p>
+                    <p style="font-weight: 700; font-size: 1.1rem;">
                         <a href="tel:${order.phone_number}" style="color: var(--accent); text-decoration: none;">
-                            ${order.phone_number}
+                            <i class="fas fa-phone"></i> ${order.phone_number}
                         </a>
                     </p>
                 </div>
             </div>
             
             ${order.address ? `
-                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Delivery Address</p>
-                    <p>${order.address}</p>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Delivery Address</p>
+                    <p style="font-size: 1rem;">${order.address}</p>
                 </div>
             ` : ''}
         </div>
         
-        <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-            <h4 style="margin-bottom: 15px; color: var(--primary);">Product Information</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(129, 140, 248, 0.05)); 
+                  border: 1px solid rgba(99, 102, 241, 0.2); padding: 25px; border-radius: 15px; margin-bottom: 25px;">
+            <h4 style="margin-bottom: 20px; color: var(--primary); display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-box"></i> Product Information
+            </h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div>
-                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Product</p>
-                    <p style="font-weight: 600;">${order.product_name}</p>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Product Name</p>
+                    <p style="font-weight: 700; font-size: 1.1rem;">${order.product_name}</p>
                 </div>
                 <div>
-                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Quantity</p>
-                    <p class="mono" style="font-weight: 600;">${order.quantity}</p>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Quantity</p>
+                    <p style="font-weight: 700; font-size: 1.1rem; color: var(--accent);">${order.quantity}</p>
                 </div>
                 <div>
-                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Unit Price</p>
-                    <p class="mono" style="font-weight: 600;">Rs. ${order.price.toLocaleString()}</p>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Unit Price</p>
+                    <p class="mono" style="font-weight: 700; font-size: 1.1rem;">Rs. ${order.price.toLocaleString()}</p>
                 </div>
                 <div>
-                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Total Amount</p>
-                    <p class="mono" style="font-weight: 700; font-size: 1.2rem; color: var(--success);">
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Total Amount</p>
+                    <p class="mono" style="font-weight: 800; font-size: 1.3rem; color: var(--success);">
                         Rs. ${order.total.toLocaleString()}
                     </p>
                 </div>
             </div>
             
             ${order.requirements ? `
-                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Special Requirements</p>
-                    <p>${order.requirements}</p>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Special Requirements</p>
+                    <p style="font-size: 1rem; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px;">${order.requirements}</p>
                 </div>
             ` : ''}
         </div>
         
-        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-            <p style="opacity: 0.7; font-size: 0.85rem;">
-                Order placed: ${new Date(order.created_at).toLocaleString()}
-            </p>
+        <div style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Order Placed</p>
+                    <p style="font-weight: 600;">${new Date(order.created_at).toLocaleString()}</p>
+                </div>
+                <div>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 5px;">Order ID</p>
+                    <p class="mono" style="font-weight: 600; font-size: 0.9rem;">${order.id}</p>
+                </div>
+            </div>
         </div>
         
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
             ${order.status === 'Pending' ? `
-                <button class="btn-3d btn-success" onclick="updateOrderStatus('${order.tracking_id}', 'Confirmed')" style="flex: 1;">
+                <button class="btn-3d btn-success" onclick="updateOrderStatus('${order.tracking_id}', 'Confirmed'); closeOrderDetailsModal()" style="flex: 1; min-width: 150px;">
                     <i class="fas fa-check"></i> Confirm Order
                 </button>
             ` : ''}
             ${order.status !== 'Cancelled' ? `
-                <button class="btn-3d btn-danger" onclick="updateOrderStatus('${order.tracking_id}', 'Cancelled')" style="flex: 1;">
+                <button class="btn-3d btn-danger" onclick="updateOrderStatus('${order.tracking_id}', 'Cancelled'); closeOrderDetailsModal()" style="flex: 1; min-width: 150px;">
                     <i class="fas fa-times"></i> Cancel Order
                 </button>
             ` : ''}
-            <button class="btn-3d btn-secondary" onclick="closeOrderDetailsModal()" style="flex: 1;">
-                Close
+            <button class="btn-3d btn-secondary" onclick="closeOrderDetailsModal()" style="flex: 1; min-width: 150px;">
+                <i class="fas fa-times"></i> Close
             </button>
         </div>
     `;
@@ -1028,6 +1360,212 @@ function viewOrderDetails(order) {
 
 function closeOrderDetailsModal() {
     document.getElementById('orderDetailsModal').classList.remove('open');
+}
+
+// ==================== CUSTOMER MANAGEMENT ====================
+async function loadCustomers() {
+    try {
+        console.log('👥 Loading customers...');
+        
+        // Extract unique customers from orders
+        const uniqueCustomers = {};
+        allOrders.forEach(order => {
+            const key = `${order.phone_number}-${order.customer_name}`;
+            if (!uniqueCustomers[key]) {
+                uniqueCustomers[key] = {
+                    name: order.customer_name,
+                    phone: order.phone_number,
+                    orderCount: 1,
+                    totalSpent: order.total,
+                    lastOrder: order.created_at
+                };
+            } else {
+                uniqueCustomers[key].orderCount++;
+                uniqueCustomers[key].totalSpent += order.total;
+                if (new Date(order.created_at) > new Date(uniqueCustomers[key].lastOrder)) {
+                    uniqueCustomers[key].lastOrder = order.created_at;
+                }
+            }
+        });
+        
+        allCustomers = Object.values(uniqueCustomers);
+        displayCustomers(allCustomers);
+        
+        console.log(`✅ Loaded ${allCustomers.length} customers`);
+        
+    } catch (error) {
+        console.error('❌ Customers error:', error);
+        showToast('Failed to load customers', 'error');
+    }
+}
+
+function displayCustomers(customers) {
+    const container = document.getElementById('customersTableContainer');
+    
+    if (!customers || customers.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">👥</div>
+                <div class="empty-state-title">No Customers Found</div>
+                <div class="empty-state-message">Customers will appear here after they place orders</div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Sort by last order date (newest first)
+    customers.sort((a, b) => new Date(b.lastOrder) - new Date(a.lastOrder));
+    
+    const html = customers.map(customer => `
+        <tr>
+            <td>
+                <strong>${customer.name}</strong>
+            </td>
+            <td>
+                <a href="tel:${customer.phone}" class="customer-phone-link">
+                    <i class="fas fa-phone"></i> ${customer.phone}
+                </a>
+            </td>
+            <td class="mono" style="font-weight: 700; color: var(--primary);">
+                ${customer.orderCount}
+            </td>
+            <td class="mono" style="font-weight: 700; color: var(--success);">
+                Rs. ${customer.totalSpent.toLocaleString()}
+            </td>
+            <td style="font-size: 0.9rem; opacity: 0.8;">
+                ${new Date(customer.lastOrder).toLocaleDateString()}
+            </td>
+            <td>
+                <button class="btn-3d btn-primary btn-small" 
+                        onclick="viewCustomerDetails(${JSON.stringify(customer).replace(/'/g, "&#39;")})"
+                        title="View Customer">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    
+    container.innerHTML = `
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Orders</th>
+                        <th>Total Spent</th>
+                        <th>Last Order</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>${html}</tbody>
+            </table>
+        </div>
+    `;
+}
+
+function searchCustomers() {
+    const query = document.getElementById('customerSearch').value.toLowerCase();
+    const filtered = allCustomers.filter(c => 
+        c.name.toLowerCase().includes(query) ||
+        c.phone.includes(query)
+    );
+    displayCustomers(filtered);
+}
+
+function viewCustomerDetails(customer) {
+    const modal = document.getElementById('customerDetailsModal');
+    const modalBody = document.getElementById('customerDetailsModalBody');
+    
+    // Get customer's orders
+    const customerOrders = allOrders.filter(o => 
+        o.phone_number === customer.phone && o.customer_name === customer.name
+    );
+    
+    modalBody.innerHTML = `
+        <h3 style="margin-bottom: 25px; color: var(--primary); display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-user"></i> Customer Details
+        </h3>
+        
+        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.05)); 
+                  border: 1px solid rgba(16, 185, 129, 0.2); padding: 25px; border-radius: 15px; margin-bottom: 25px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Customer Name</p>
+                    <p style="font-weight: 700; font-size: 1.2rem;">${customer.name}</p>
+                </div>
+                <div>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Phone Number</p>
+                    <p style="font-weight: 700; font-size: 1.2rem;">
+                        <a href="tel:${customer.phone}" style="color: var(--accent); text-decoration: none;">
+                            <i class="fas fa-phone"></i> ${customer.phone}
+                        </a>
+                    </p>
+                </div>
+                <div>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Total Orders</p>
+                    <p class="mono" style="font-weight: 800; font-size: 1.5rem; color: var(--primary);">${customer.orderCount}</p>
+                </div>
+                <div>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 8px;">Total Spent</p>
+                    <p class="mono" style="font-weight: 800; font-size: 1.5rem; color: var(--success);">
+                        Rs. ${customer.totalSpent.toLocaleString()}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 25px;">
+            <h4 style="margin-bottom: 15px; color: var(--primary);">
+                <i class="fas fa-history"></i> Order History
+            </h4>
+            ${customerOrders.length > 0 ? `
+                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tracking ID</th>
+                                <th>Product</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${customerOrders.map(order => `
+                                <tr onclick="viewOrderDetails(${JSON.stringify(order).replace(/'/g, "&#39;")})" style="cursor: pointer;">
+                                    <td class="mono" style="font-size: 0.85rem;">${order.tracking_id}</td>
+                                    <td>${order.product_name}</td>
+                                    <td class="mono">Rs. ${order.total.toLocaleString()}</td>
+                                    <td><span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span></td>
+                                    <td style="font-size: 0.85rem;">${new Date(order.created_at).toLocaleDateString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : `
+                <div style="text-align: center; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 10px;">
+                    <p style="opacity: 0.7;">No order history found</p>
+                </div>
+            `}
+        </div>
+        
+        <div style="display: flex; gap: 15px;">
+            <button class="btn-3d btn-primary" onclick="showSection('orders'); filterOrders('all'); document.getElementById('orderSearch').value = '${customer.phone}'; searchOrders(); closeCustomerDetailsModal();" style="flex: 1;">
+                <i class="fas fa-search"></i> View All Orders
+            </button>
+            <button class="btn-3d btn-secondary" onclick="closeCustomerDetailsModal()" style="flex: 1;">
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>
+    `;
+    
+    modal.classList.add('open');
+}
+
+function closeCustomerDetailsModal() {
+    document.getElementById('customerDetailsModal').classList.remove('open');
 }
 
 // ==================== DELETE FUNCTIONALITY ====================
@@ -1112,10 +1650,25 @@ function showToast(message, type = 'info') {
     toast.textContent = message;
     toast.className = 'show';
     
+    // Remove any existing type classes
+    toast.classList.remove('success', 'error', 'warning');
+    
+    // Add type class
     if (type === 'success') {
         toast.classList.add('success');
+        toast.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(52, 211, 153, 0.9))';
+        toast.style.border = '1px solid rgba(16, 185, 129, 0.3)';
     } else if (type === 'error') {
         toast.classList.add('error');
+        toast.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(248, 113, 113, 0.9))';
+        toast.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+    } else if (type === 'warning') {
+        toast.classList.add('warning');
+        toast.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(251, 191, 36, 0.9))';
+        toast.style.border = '1px solid rgba(245, 158, 11, 0.3)';
+    } else {
+        toast.style.background = 'rgba(30, 41, 59, 0.95)';
+        toast.style.border = '1px solid rgba(255, 255, 255, 0.1)';
     }
     
     setTimeout(() => {
@@ -1133,6 +1686,143 @@ async function handleLogout() {
         console.error('Logout error:', error);
         showToast('Failed to logout', 'error');
     }
+}
+
+// ==================== FILTER PRODUCTS ====================
+function filterProducts(filter) {
+    let filtered = allProducts;
+    
+    switch(filter) {
+        case 'in_stock':
+            filtered = allProducts.filter(p => (p.stock || 0) > 0);
+            break;
+        case 'out_of_stock':
+            filtered = allProducts.filter(p => (p.stock || 0) === 0);
+            break;
+        case 'low_stock':
+            filtered = allProducts.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= 5);
+            break;
+    }
+    
+    displayProducts(filtered);
+    
+    // Update active filter chip
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.classList.remove('active');
+    });
+    
+    const clickedChip = document.querySelector(`.filter-chip[onclick*="${filter}"]`);
+    if (clickedChip) {
+        clickedChip.classList.add('active');
+    }
+}
+
+// ==================== QUICK ACTIONS ====================
+function showOutOfStock() {
+    showSection('products');
+    
+    setTimeout(() => {
+        const outOfStockProducts = allProducts.filter(p => (p.stock || 0) === 0);
+        displayProducts(outOfStockProducts);
+        
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.classList.remove('active');
+        });
+        
+        const outOfStockChip = document.querySelector('.filter-chip[onclick*="out_of_stock"]');
+        if (outOfStockChip) {
+            outOfStockChip.classList.add('active');
+        }
+        
+        document.getElementById('productSearch').value = '';
+        
+        showToast(`Showing ${outOfStockProducts.length} out of stock products`, 'info');
+    }, 100);
+}
+
+// ==================== EXPORT ORDERS ====================
+async function exportOrders() {
+    try {
+        const { data: orders, error } = await window.supabaseClient
+            .from('orders')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (!orders || orders.length === 0) {
+            showToast('No orders to export', 'warning');
+            return;
+        }
+        
+        const csvData = convertToCSV(orders);
+        downloadCSV(csvData, `orders_export_${Date.now()}.csv`);
+        
+        showToast(`✅ Exported ${orders.length} orders`, 'success');
+        
+    } catch (error) {
+        console.error('❌ Export error:', error);
+        showToast('Failed to export orders', 'error');
+    }
+}
+
+function convertToCSV(data) {
+    if (!data || data.length === 0) return '';
+    
+    const headers = [
+        'Tracking ID',
+        'Customer Name',
+        'Phone Number',
+        'Product',
+        'Quantity',
+        'Unit Price',
+        'Total',
+        'Status',
+        'Order Date',
+        'Address',
+        'Requirements'
+    ];
+    
+    const rows = data.map(order => [
+        order.tracking_id,
+        order.customer_name,
+        order.phone_number,
+        order.product_name,
+        order.quantity,
+        order.price,
+        order.total,
+        order.status,
+        new Date(order.created_at).toLocaleString(),
+        order.address || '',
+        order.requirements || ''
+    ]);
+    
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => 
+            row.map(cell => 
+                `"${String(cell).replace(/"/g, '""')}"`
+            ).join(',')
+        )
+    ].join('\n');
+    
+    return csvContent;
+}
+
+function downloadCSV(content, filename) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    URL.revokeObjectURL(url);
 }
 
 // ==================== REAL-TIME UPDATES ====================
@@ -1165,148 +1855,49 @@ function setupRealtime() {
         )
         .subscribe();
 }
-// ==================== EXPORT FUNCTIONALITY ====================
-async function exportOrders() {
-    try {
-        console.log('📤 Exporting orders...');
-        
-        // Get all orders
-        const { data: orders, error } = await window.supabaseClient
-            .from('orders')
-            .select('*')
-            .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        if (!orders || orders.length === 0) {
-            showToast('No orders to export', 'warning');
-            return;
-        }
-        
-        // Convert to CSV
-        const csvData = convertToCSV(orders);
-        
-        // Create download link
-        downloadCSV(csvData, `orders_export_${Date.now()}.csv`);
-        
-        showToast(`✅ Exported ${orders.length} orders`, 'success');
-        
-    } catch (error) {
-        console.error('❌ Export error:', error);
-        showToast('Failed to export orders', 'error');
+
+// ==================== MOBILE MENU FUNCTIONS ====================
+function toggleMobileMenu() {
+    const hamburger = document.querySelector('.hamburger-menu');
+    const mobileNav = document.querySelector('.mobile-nav');
+    const overlay = document.querySelector('.mobile-nav-overlay');
+    
+    hamburger.classList.toggle('active');
+    mobileNav.classList.toggle('active');
+    overlay.classList.toggle('active');
+    
+    // Toggle body scroll
+    document.body.style.overflow = hamburger.classList.contains('active') ? 'hidden' : '';
+}
+
+function closeMobileMenu() {
+    const hamburger = document.querySelector('.hamburger-menu');
+    const mobileNav = document.querySelector('.mobile-nav');
+    const overlay = document.querySelector('.mobile-nav-overlay');
+    
+    hamburger.classList.remove('active');
+    mobileNav.classList.remove('active');
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(event) {
+    const mobileNav = document.querySelector('.mobile-nav');
+    const hamburger = document.querySelector('.hamburger-menu');
+    
+    if (mobileNav && mobileNav.classList.contains('active') && 
+        !mobileNav.contains(event.target) && 
+        !hamburger.contains(event.target)) {
+        closeMobileMenu();
     }
-}
+});
 
-function convertToCSV(data) {
-    if (!data || data.length === 0) return '';
-    
-    // Define headers
-    const headers = [
-        'Tracking ID',
-        'Customer Name',
-        'Phone Number',
-        'Product',
-        'Quantity',
-        'Unit Price',
-        'Total',
-        'Status',
-        'Order Date',
-        'Address',
-        'Requirements'
-    ];
-    
-    // Convert data to rows
-    const rows = data.map(order => [
-        order.tracking_id,
-        order.customer_name,
-        order.phone_number,
-        order.product_name,
-        order.quantity,
-        order.price,
-        order.total,
-        order.status,
-        new Date(order.created_at).toLocaleString(),
-        order.address || '',
-        order.requirements || ''
-    ]);
-    
-    // Combine headers and rows
-    const csvContent = [
-        headers.join(','),
-        ...rows.map(row => 
-            row.map(cell => 
-                `"${String(cell).replace(/"/g, '""')}"`
-            ).join(',')
-        )
-    ].join('\n');
-    
-    return csvContent;
-}
-
-function downloadCSV(content, filename) {
-    // Create blob
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    
-    // Create download link
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    
-    // Trigger download
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Clean up
-    URL.revokeObjectURL(url);
-}
-
-// ==================== QUICK ACTION FUNCTIONS ====================
-function showOutOfStock() {
-    showSection('products');
-    
-    // Filter to show out of stock products
-    setTimeout(() => {
-        const outOfStockProducts = allProducts.filter(p => (p.stock || 0) === 0);
-        displayProducts(outOfStockProducts);
-        
-        // Update search box
-        document.getElementById('productSearch').value = '';
-        
-        showToast(`Showing ${outOfStockProducts.length} out of stock products`, 'info');
-    }, 100);
-}
-
-// ==================== FILTER PRODUCTS BY STOCK ====================
-function filterProducts(filter) {
-    let filtered = allProducts;
-    
-    switch(filter) {
-        case 'in_stock':
-            filtered = allProducts.filter(p => (p.stock || 0) > 0);
-            break;
-        case 'out_of_stock':
-            filtered = allProducts.filter(p => (p.stock || 0) === 0);
-            break;
-        case 'low_stock':
-            filtered = allProducts.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= 5);
-            break;
+// Handle escape key to close mobile menu
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeMobileMenu();
     }
-    
-    displayProducts(filtered);
-    
-    // Update active filter chip
-    document.querySelectorAll('.filter-chip').forEach(chip => {
-        chip.classList.remove('active');
-    });
-    
-    // Find and activate the clicked filter
-    const clickedChip = document.querySelector(`.filter-chip[onclick*="${filter}"]`);
-    if (clickedChip) {
-        clickedChip.classList.add('active');
-    }
-}
+});
+
 console.log('✅ Admin.js loaded successfully');
