@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>නිතර අසන ප්‍රශ්න - සත්සර මල් පැළ</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navigation.css">
+    
+    <style>
+        .faq-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .faq-category {
+            margin-bottom: 3rem;
+        }
+        
+        .category-title {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(99, 102, 241, 0.3);
+        }
+        
+        .faq-item {
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .faq-item:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.2);
+        }
+        
+        .faq-question {
+            padding: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            transition: background 0.3s;
+        }
+        
+        .faq-question:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+        
+        .faq-question h3 {
+            font-size: 1.2rem;
+            color: white;
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .faq-icon {
+            font-size: 1.5rem;
+            color: var(--primary);
+            transition: transform 0.3s;
+        }
+        
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+        
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+        
+        .faq-item.active .faq-answer {
+            max-height: 1000px;
+            padding: 0 1.5rem 1.5rem 1.5rem;
+        }
+        
+        .faq-answer p {
+            opacity: 0.9;
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+        
+        .faq-answer ul {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+        
+        .faq-answer li {
+            opacity: 0.9;
+            line-height: 1.8;
+            margin-bottom: 0.5rem;
+        }
+        
+        .highlight-box {
+            background: rgba(99, 102, 241, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle Background Canvas -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-logo" data-action="go-home" style="cursor: pointer;">
+            <span style="font-size: 1.8rem;">🌺</span>
+            <span>සත්සර මල් පැළ</span>
+        </div>
+        <div class="nav-links">
+            <div class="nav-item" data-page="home">
+                <i class="fas fa-home"></i> මුල් පිටුව
+            </div>
+            <div class="nav-item" data-page="track">
+                <i class="fas fa-search-location"></i> ඇණවුම සොයන්න
+            </div>
+            <div class="nav-item" data-page="contact">
+                <i class="fas fa-phone"></i> අමතන්න
+            </div>
+            <div class="nav-item active" data-page="faq">
+                <i class="fas fa-question-circle"></i> FAQ
+            </div>
+            <div class="nav-item" data-page="about">
+                <i class="fas fa-info-circle"></i> අපි ගැන
+            </div>
+        </div>
+        
+        <!-- Hamburger Menu -->
+        <div class="hamburger" id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <h2>🌺 සත්සර මල් පැළ</h2>
+            <p>නිතර අසන ප්‍රශ්න</p>
+        </div>
+        
+        <div class="mobile-nav-items">
+            <div class="mobile-nav-item" data-page="home">
+                <i class="fas fa-home"></i>
+                <span>මුල් පිටුව</span>
+            </div>
+            <div class="mobile-nav-item" data-page="track">
+                <i class="fas fa-search-location"></i>
+                <span>ඇණවුම සොයන්න</span>
+            </div>
+            <div class="mobile-nav-item" data-page="contact">
+                <i class="fas fa-phone"></i>
+                <span>අමතන්න</span>
+            </div>
+            <div class="mobile-nav-item active" data-page="faq">
+                <i class="fas fa-question-circle"></i>
+                <span>FAQ</span>
+            </div>
+            <div class="mobile-nav-item" data-page="about">
+                <i class="fas fa-info-circle"></i>
+                <span>අපි ගැන</span>
+            </div>
+            <div class="mobile-nav-item" data-page="privacy">
+                <i class="fas fa-shield-alt"></i>
+                <span>රහස්‍යතා ප්‍රතිපත්තිය</span>
+            </div>
+        </div>
+        
+        <div class="mobile-menu-footer">
+            <div class="mobile-social-links">
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-whatsapp"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+            </div>
+            <p style="text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.5);">
+                © 2026 සත්සර මල් පැළ
+            </p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <h1 class="hero-title">❓ නිතර අසන ප්‍රශ්න</h1>
+            <p class="hero-subtitle">ඔබට අවශ්‍ය පිළිතුරු මෙතැනින් සොයා ගන්න</p>
+        </div>
+
+        <div class="faq-container">
+            <!-- Ordering Process -->
+            <div class="faq-category">
+                <h2 class="category-title">
+                    <i class="fas fa-shopping-cart"></i>
+                    ඇණවුම් කිරීම
+                </h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>මම කොහොමද මල් පැළ ඇණවුමක් කරන්නේ?</h3>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>ඇණවුමක් කිරීම ඉතා පහසුයි:</p>
+                        <ol>
+                            <li>අපගේ වෙබ් අඩවියේ ඔබට අවශ්‍ය මල් පැළය තෝරන්න</li>
+                            <li>"ඇණවුම් කරන්න" බොත්තම click කරන්න</li>
+                            <li>ඔබගේ තොරතුරු (නම, දුරකතන අංකය, ලිපිනය) ඇතුළත් කරන්න</li>
+                            <li>ඇණවුම තහවුරු කරන්න</li>
+                            <li>ඔබට tracking ID එකක් ලැබෙනවා</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>ගෙවීම් ක්‍රම මොනවාද?</h3>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>අපි පහත ගෙවීම් ක්‍රම භාවිතා කරන්න පුළුවන්:</p>
+                        <ul>
+                            <li><strong>Cash on Delivery (COD):</strong> භාණඩය ලැබෙන විට මුදල් ගෙවන්න</li>
+                            <li><strong>Bank Transfer:</strong> බැංකු මාරු කිරීම් මගින්</li>
+                            <li><strong>Online Payment:</strong> කාඩ් payment හෝ mobile payment</li>
+                        </ul>
+                        <div class="highlight-box">
+                            <strong><i class="fas fa-info-circle"></i> සටහන:</strong> COD විකල්පය නොමිලේ!
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>Minimum order amount එකක් තියෙනවාද?</h3>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>නැහැ! ඔබට single plant එකක් පවා ඇණවුම් කරන්න පුළුවන්. අපි හැම order එකකටම සමාන වැදගත්කමක් දෙනවා.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delivery -->
+            <div class="faq-category">
+                <h2 class="category-title">
+                    <i class="fas fa-truck"></i>
+                    බෙදාහැරීම
+                </h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>Delivery time කොපමණද?</h3>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>බෙදාහැරීමේ කාලය ප්‍රදේශය අනුව වෙනස් වේ:</p>
+                        <ul>
+                            <li><strong>කොළඹ අවට:</strong> දින 1-2ක් තුළ</li>
+                            <li><strong>අනෙකුත් නගර:</strong> දින 3-5ක් තුළ</li>
+                            <li><strong>දුරස්ථ ප්‍රදේශ:</strong> දින 5-7ක් තුළ</li>
+                        </ul>
+                        <div class="highlight-box">
+                            <strong><i class="fas fa-lightning-bolt"></i> Express Delivery:</strong> අමතර ගාස්තුවක් යටතේ 24 පැය තුළ delivery!
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>Delivery charges කොපමණද?</h3>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Delivery charges ප්‍රදේශය අනුව වෙනස් වෙනවා:</p>
+                        <ul>
+                            <li>කොළඹ අවට: රු. 300</li>
+                            <li>අනෙකුත් නගර: රු. 500</li>
+                            <li>දුරස්ථ ප්‍රදේශ: රු. 700</li>
+                        </ul>
+                        <div class="highlight-box">
+                            <strong><i class="fas fa-gift"></i> Special Offer:</strong> රු. 5,000 ට වඩා වැඩි orders සඳහා FREE delivery!
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>මගේ order track කරන්නේ කොහොමද?</h3>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>ඔබගේ order track කරන්න පහසුයි:</p>
+                        <ol>
+                            <li>"ඇණවුම සොයන්න" page එකට යන්න</li>
+                            <li>ඔබගේ tracking ID එක enter කරන්න</li>
+                            <li>ඔබගේ order status පෙන්වයි</li>
+                        </ol>
+                        <p>Tracking ID එක order කරන විට SMS හෝ WhatsApp මගින් ලැබේ.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products & Quality -->
+            <div class="faq-category">
+                <h2 class="category-title">
+                    <i class="fas fa-seedling"></i>
+                    මල් පැළ සහ ගුණාත්මකභාවය
+                </h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>ඔබේ මල් පැළ සෞඛ්‍ය සම්පන්නද?</h3>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>අනිවාර්යයෙන්ම! අපි:</p>
+                        <ul>
+                            <li>සෑම පැළයක්ම පරීක්ෂා කර තෝරා ගනිමු</li>
+                            <li>සෞඛ්‍ය සම්පන්න, රෝග රහිත පැළ පමණක් සපයමු</li>
+                            <li>හොඳින් වර්ධනය වූ, ශක්තිමත් පැළ ලබා දෙමු</li>
+                            <li>විශේෂඥ උද්‍යානවේදීන් විසින් පරීක්ෂා කරනු ලැබේ</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>වගා කිරීමේ උපදෙස් ලැබෙනවාද?</h3>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>ඔව්! සෑම order එකකම:</p>
+                        <ul>
+                            <li>විස්තරාත්මක වගා කිරීමේ උපදෙස් පතක්</li>
+                            <li>WhatsApp support 24/7</li>
+                            <li>නොමිලේ follow-up calls</li>
+                            <li>වීඩියෝ මාර්ගෝපදේශන links</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>පැළය මිය ගියොත් මොකද කරන්නේ?</h3>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>අපගේ guarantee policy අනුව:</p>
+                        <div class="highlight-box">
+                            <strong><i class="fas fa-shield-alt"></i> 7-Day Guarantee:</strong>
+                            <p>දින 7ක් ඇතුළත පැළය හානිවේ නම්, අපි නොමිලේ ප්‍රතිස්ථාපනය කරමු හෝ මුදල් ආපසු දෙමු.</p>
+                        </div>
+                        <p>අවශ්‍යතා:</p>
+                        <ul>
+                            <li>අපගේ උපදෙස් අනුව වගා කර තිබිය යුතුයි</li>
+                            <li>Photo evidence සපයන්න</li>
+                            <li>දින 7ක් ඇතුළත දන්වන්න</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Support -->
+            <div class="faq-category">
+                <h2 class="category-title">
+                    <i class="fas fa-headset"></i>
+                    සේවා සහාය
+                </h2>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>සේවා සහායක කණ්ඩායම කොහොමද contact කරන්නේ?</h3>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>අපව contact කරන්න පහත ක්‍රම භාවිතා කරන්න:</p>
+                        <ul>
+                            <li><strong>WhatsApp:</strong> +94 77 225 4513 (24/7)</li>
+                            <li><strong>Phone:</strong> +94 77 225 4513</li>
+                            <li><strong>Email:</strong> info@sathsaraplants.com</li>
+                            <li><strong>Facebook/Instagram:</strong> Direct Messages</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <h3>ඇණවුමක් cancel කරන්න පුළුවන්ද?</h3>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>ඔව්, නමුත් කොන්දේසි යටතේ:</p>
+                        <ul>
+                            <li>Order confirm වෙලා පැය 24ක් ඇතුළත cancel කරන්න</li>
+                            <li>භාණඩය dispatch කරන්න කලින් විය යුතුයි</li>
+                            <li>අපගේ customer support අමතන්න</li>
+                        </ul>
+                        <div class="highlight-box">
+                            <strong><i class="fas fa-info-circle"></i> සටහන:</strong> Dispatch කර දැමූ orders cancel කරන්න බැහැ.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Still Have Questions? -->
+            <div class="card-3d" style="margin: 3rem 0; padding: 3rem 2rem; text-align: center; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(16, 185, 129, 0.1));">
+                <h2 style="font-size: 2rem; margin-bottom: 1rem; color: var(--primary);">
+                    තවමත් ප්‍රශ්න තිබේද?
+                </h2>
+                <p style="font-size: 1.1rem; opacity: 0.9; margin-bottom: 2rem;">
+                    අපගේ කණ්ඩායම ඔබට උදව් කිරීමට සූදානම්!
+                </p>
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn-3d btn-primary" onclick="window.location.href='contact.html'">
+                        <i class="fas fa-phone"></i> අප අමතන්න
+                    </button>
+                    <a href="https://wa.me/94772254513?text=මට%20ප්‍රශ්නයක්%20තියෙනවා" target="_blank" class="btn-3d btn-success" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fab fa-whatsapp"></i> WhatsApp කරන්න
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="background: rgba(15, 23, 42, 0.8); padding: 2rem; margin-top: 5rem; border-top: 1px solid rgba(99, 102, 241, 0.2); text-align: center;">
+        <p style="opacity: 0.6;">© 2026 සත්සර මල් පැළ. සියලු හිමිකම් ඇවිරිණි.</p>
+        <div style="margin-top: 1rem;">
+            <a href="privacy.html" style="color: var(--primary); margin: 0 1rem; text-decoration: none;">රහස්‍යතා ප්‍රතිපත්තිය</a>
+            <a href="about.html" style="color: var(--primary); margin: 0 1rem; text-decoration: none;">අපි ගැන</a>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="background.js"></script>
+    <script src="navigation.js"></script>
+    <script>
+        // Toggle FAQ item
+        function toggleFAQ(element) {
+            const faqItem = element.parentElement;
+            const isActive = faqItem.classList.contains('active');
+            
+            // Close all FAQ items
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Open clicked item if it wasn't active
+            if (!isActive) {
+                faqItem.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>අපි ගැන - සත්සර මල් පැළ</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navigation.css">
+    
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 2.5rem 2rem;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 15px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+        
+        .stat-number {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+        
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        
+        .value-card {
+            padding: 2rem;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 15px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .value-card:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2);
+        }
+        
+        .value-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .value-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .value-desc {
+            opacity: 0.9;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle Background Canvas -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-logo" data-action="go-home" style="cursor: pointer;">
+            <span style="font-size: 1.8rem;">🌺</span>
+            <span>සත්සර මල් පැළ</span>
+        </div>
+        <div class="nav-links">
+            <div class="nav-item" data-page="home">
+                <i class="fas fa-home"></i> මුල් පිටුව
+            </div>
+            <div class="nav-item" data-page="track">
+                <i class="fas fa-search-location"></i> ඇණවුම සොයන්න
+            </div>
+            <div class="nav-item" data-page="contact">
+                <i class="fas fa-phone"></i> අමතන්න
+            </div>
+            <div class="nav-item" data-page="faq">
+                <i class="fas fa-question-circle"></i> FAQ
+            </div>
+            <div class="nav-item active" data-page="about">
+                <i class="fas fa-info-circle"></i> අපි ගැන
+            </div>
+        </div>
+        
+        <!-- Hamburger Menu -->
+        <div class="hamburger" id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <h2>🌺 සත්සර මල් පැළ</h2>
+            <p>අපි ගැන</p>
+        </div>
+        
+        <div class="mobile-nav-items">
+            <div class="mobile-nav-item" data-page="home">
+                <i class="fas fa-home"></i>
+                <span>මුල් පිටුව</span>
+            </div>
+            <div class="mobile-nav-item" data-page="track">
+                <i class="fas fa-search-location"></i>
+                <span>ඇණවුම සොයන්න</span>
+            </div>
+            <div class="mobile-nav-item" data-page="contact">
+                <i class="fas fa-phone"></i>
+                <span>අමතන්න</span>
+            </div>
+            <div class="mobile-nav-item" data-page="faq">
+                <i class="fas fa-question-circle"></i>
+                <span>FAQ</span>
+            </div>
+            <div class="mobile-nav-item active" data-page="about">
+                <i class="fas fa-info-circle"></i>
+                <span>අපි ගැන</span>
+            </div>
+            <div class="mobile-nav-item" data-page="privacy">
+                <i class="fas fa-shield-alt"></i>
+                <span>රහස්‍යතා ප්‍රතිපත්තිය</span>
+            </div>
+        </div>
+        
+        <div class="mobile-menu-footer">
+            <div class="mobile-social-links">
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-whatsapp"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+            </div>
+            <p style="text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.5);">
+                © 2026 සත්සර මල් පැළ
+            </p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <h1 class="hero-title">🌺 අපි ගැන</h1>
+            <p class="hero-subtitle">ඔබේ විශ්වාසනීය මල් පැළ සපයන්නා</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">5000+</div>
+                <div class="stat-label">සතුටු පාරිභෝගිකයින්</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">150+</div>
+                <div class="stat-label">මල් පැළ වර්ග</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">99%</div>
+                <div class="stat-label">තෘප්තිමත් භාවය</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">සේවාව</div>
+            </div>
+        </div>
+
+        <!-- Mission Section -->
+        <div class="card-3d" style="margin: 3rem 0; padding: 3rem 2rem; text-align: center;">
+            <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem; color: var(--primary);">අපගේ මෙහෙවර</h2>
+            <p style="font-size: 1.2rem; opacity: 0.9; line-height: 1.9; max-width: 900px; margin: 0 auto;">
+                සත්සර මල් පැළ හි අපගේ අරමුණ වන්නේ ශ්‍රී ලංකාවේ හොඳම තත්ත්වයේ මල් පැළ ඔබේ ගෙදරටම ගෙන ඒමයි.
+                අපි ගුණාත්මකභාවය, සැබෑ මිල, සහ විශ්වසනීය සේවාව මගින් ඔබේ උද්‍යාන සිහිනය සැබෑ කරන්නට උදව් කරමු.
+                සෑම මල් පැළයක්ම ආදරයෙන් හා සේවයෙන් හඳුන්වා දී ඇති අතර, ඔබේ සතුට අපගේ ප්‍රමුඛතාවයයි.
+            </p>
+        </div>
+
+        <!-- Values Section -->
+        <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 2rem; color: var(--primary);">
+            අපගේ වටිනාකම්
+        </h2>
+
+        <div class="values-grid">
+            <div class="value-card">
+                <div class="value-icon">🌿</div>
+                <div class="value-title">ගුණාත්මකභාවය</div>
+                <div class="value-desc">
+                    අපි ඉහළම තත්ත්වයේ, සෞඛ්‍ය සම්පන්න මල් පැළ පමණක් සපයන්නෙමු. සෑම පැළයක්ම වගා කිරීමට පෙර හොඳින් පරීක්ෂා කර තෝරා ගනු ලැබේ.
+                </div>
+            </div>
+            
+            <div class="value-card">
+                <div class="value-icon">💚</div>
+                <div class="value-title">පාරිභෝගික සේවය</div>
+                <div class="value-desc">
+                    ඔබේ සතුට අපගේ ප්‍රමුඛතාවයයි. වගාකිරීමේ උපදෙස්, පසු විකුණුම් සේවාව සහ 24/7 සහාය අප සමඟ ඇත.
+                </div>
+            </div>
+            
+            <div class="value-card">
+                <div class="value-icon">🚚</div>
+                <div class="value-title">ඉක්මන් බෙදාහැරීම</div>
+                <div class="value-desc">
+                    ඔබේ මල් පැළ ආරක්ෂිතව හා ඉක්මනින් ඔබේ ගෙදර දොරකඩට. සෑම පැකේජයක්ම සුරක්ෂිතව අසුරා ඇති අතර වේගයෙන් ලබා දෙන්නෙමු.
+                </div>
+            </div>
+            
+            <div class="value-card">
+                <div class="value-icon">💰</div>
+                <div class="value-title">සාධාරණ මිල</div>
+                <div class="value-desc">
+                    හොඳම තත්ත්වය සඳහා සාධාරණ මිලක්. අපි විශ්වාස කරන්නේ ගුණාත්මකභාවය මිල අධික විය යුතු නැති බවයි.
+                </div>
+            </div>
+            
+            <div class="value-card">
+                <div class="value-icon">🌱</div>
+                <div class="value-title">පරිසර හිතකාමී</div>
+                <div class="value-desc">
+                    අපි පරිසරය ගරු කරමු. ජීව විද්‍යාත්මක පැකේජින්, ස්වභාවික පොහොර, සහ තිරසාර ක්‍රම භාවිතා කරමු.
+                </div>
+            </div>
+            
+            <div class="value-card">
+                <div class="value-icon">🎓</div>
+                <div class="value-title">උපදෙස් සහ මඟ පෙන්වීම</div>
+                <div class="value-desc">
+                    නොමිලේ වගාකිරීමේ උපදෙස්, වීඩියෝ මාර්ගෝපදේශන, සහ අපගේ විශේෂඥ කණ්ඩායමේ සහාය ඔබට ලැබේ.
+                </div>
+            </div>
+        </div>
+
+        <!-- Why Choose Us Section -->
+        <div class="card-3d" style="margin: 3rem 0; padding: 3rem 2rem;">
+            <h2 style="font-size: 2.5rem; margin-bottom: 2rem; color: var(--primary); text-align: center;">
+                ඇයි සත්සර මල් පැළ තෝරා ගන්නේ?
+            </h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 2rem;">
+                <div style="padding: 1.5rem; background: rgba(99, 102, 241, 0.1); border-radius: 12px; border-left: 4px solid var(--primary);">
+                    <h3 style="color: var(--primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-certificate"></i> තහවුරු කළ ගුණාත්මකභාවය
+                    </h3>
+                    <p style="opacity: 0.9; line-height: 1.8;">
+                        සෑම මල් පැළයක්ම අපගේ උද්‍යාන විශේෂඥයින් විසින් පරීක්ෂා කර තහවුරු කර ඇත.
+                    </p>
+                </div>
+                
+                <div style="padding: 1.5rem; background: rgba(16, 185, 129, 0.1); border-radius: 12px; border-left: 4px solid var(--success);">
+                    <h3 style="color: var(--success); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-shield-alt"></i> මුදල් ආපසු ගැරන්ටිය
+                    </h3>
+                    <p style="opacity: 0.9; line-height: 1.8;">
+                        100% තෘප්තිමත් නොවේ නම්, අපි ඔබේ මුදල් සම්පූර්ණයෙන්ම ආපසු ලබා දෙන්නෙමු.
+                    </p>
+                </div>
+                
+                <div style="padding: 1.5rem; background: rgba(245, 158, 11, 0.1); border-radius: 12px; border-left: 4px solid var(--warning);">
+                    <h3 style="color: var(--warning); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-headset"></i> 24/7 සහායක සේවය
+                    </h3>
+                    <p style="opacity: 0.9; line-height: 1.8;">
+                        දවස 24ම, සති 7ම අපගේ කණ්ඩායම ඔබට උදව් කිරීමට සූදානම්.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact CTA -->
+        <div class="card-3d" style="margin: 3rem 0; padding: 3rem 2rem; text-align: center; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(16, 185, 129, 0.1));">
+            <h2 style="font-size: 2rem; margin-bottom: 1rem; color: var(--primary);">
+                අපව අමතන්න
+            </h2>
+            <p style="font-size: 1.1rem; opacity: 0.9; margin-bottom: 2rem; line-height: 1.8;">
+                ඔබට ප්‍රශ්නයක් තිබේද? උදව් අවශ්‍යද? අපගේ කණ්ඩායම ඔබට උදව් කිරීමට සූදානම්!
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button class="btn-3d btn-primary" onclick="window.location.href='contact.html'" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                    <i class="fas fa-phone"></i> අප අමතන්න
+                </button>
+                <a href="https://wa.me/94772254513" target="_blank" class="btn-3d btn-success" style="padding: 1rem 2rem; font-size: 1.1rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="background: rgba(15, 23, 42, 0.8); padding: 3rem 2rem; margin-top: 5rem; border-top: 1px solid rgba(99, 102, 241, 0.2);">
+        <div class="container" style="text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 1rem;">🌺</div>
+            <h3 style="color: var(--primary); margin-bottom: 0.5rem;">සත්සර මල් පැළ</h3>
+            <p style="opacity: 0.7; margin-bottom: 2rem;">Premium Flower Plants & Gardening Solutions</p>
+            
+            <div style="display: flex; gap: 1.5rem; justify-content: center; margin: 2rem 0;">
+                <a href="#" style="color: rgba(255,255,255,0.7); font-size: 1.5rem; transition: color 0.3s;"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" style="color: rgba(255,255,255,0.7); font-size: 1.5rem; transition: color 0.3s;"><i class="fab fa-instagram"></i></a>
+                <a href="https://wa.me/94772254513" style="color: rgba(255,255,255,0.7); font-size: 1.5rem; transition: color 0.3s;"><i class="fab fa-whatsapp"></i></a>
+                <a href="#" style="color: rgba(255,255,255,0.7); font-size: 1.5rem; transition: color 0.3s;"><i class="fab fa-twitter"></i></a>
+            </div>
+            
+            <div style="margin: 2rem 0; padding: 1.5rem; background: rgba(30, 41, 59, 0.6); border-radius: 10px; display: inline-block;">
+                <p style="margin: 0.5rem 0;"><i class="fas fa-phone"></i> +94 77 225 4513</p>
+                <p style="margin: 0.5rem 0;"><i class="fas fa-envelope"></i> info@sathsaraplants.com</p>
+                <p style="margin: 0.5rem 0;"><i class="fas fa-map-marker-alt"></i> Colombo, Sri Lanka</p>
+            </div>
+            
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                <p style="opacity: 0.6; font-size: 0.9rem;">
+                    © 2026 සත්සර මල් පැළ. සියලු හිමිකම් ඇවිරිණි.
+                </p>
+                <div style="margin-top: 1rem;">
+                    <a href="privacy.html" style="color: var(--primary); margin: 0 1rem; text-decoration: none;">රහස්‍යතා ප්‍රතිපත්තිය</a>
+                    <a href="faq.html" style="color: var(--primary); margin: 0 1rem; text-decoration: none;">FAQ</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="background.js"></script>
+    <script src="navigation.js"></script>
+</body>
+</html>
