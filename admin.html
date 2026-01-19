@@ -14,9 +14,6 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Supabase Client Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <!-- Admin Styles -->
     <link rel="stylesheet" href="admin.css">
 </head>
@@ -482,54 +479,68 @@
     </div>
     
     <!-- Scripts -->
+    <!-- Load Supabase first -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Then load config.js which initializes Supabase -->
     <script src="config.js"></script>
+    
+    <!-- Then load admin.js which uses Supabase -->
     <script src="admin.js"></script>
+    
     <script>
-        // Navigation between sections
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const section = link.dataset.section;
-                
-                // Update nav links
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-                
-                // Update sections
-                document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-                document.getElementById(section).classList.add('active');
-                
-                // Close mobile sidebar
+        // Wait for everything to load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('🎯 Admin panel DOM loaded');
+            
+            // Navigation between sections
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const section = link.dataset.section;
+                    
+                    // Update nav links
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    
+                    // Update sections
+                    document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+                    document.getElementById(section).classList.add('active');
+                    
+                    // Close mobile sidebar
+                    document.getElementById('adminSidebar').classList.remove('active');
+                    document.getElementById('mobileOverlay').classList.remove('active');
+                });
+            });
+            
+            // Mobile menu toggle
+            document.getElementById('menuToggle')?.addEventListener('click', () => {
+                document.getElementById('adminSidebar').classList.add('active');
+                document.getElementById('mobileOverlay').classList.add('active');
+            });
+            
+            document.getElementById('sidebarClose')?.addEventListener('click', () => {
                 document.getElementById('adminSidebar').classList.remove('active');
                 document.getElementById('mobileOverlay').classList.remove('active');
             });
-        });
-        
-        // Mobile menu toggle
-        document.getElementById('menuToggle').addEventListener('click', () => {
-            document.getElementById('adminSidebar').classList.add('active');
-            document.getElementById('mobileOverlay').classList.add('active');
-        });
-        
-        document.getElementById('sidebarClose').addEventListener('click', () => {
-            document.getElementById('adminSidebar').classList.remove('active');
-            document.getElementById('mobileOverlay').classList.remove('active');
-        });
-        
-        document.getElementById('mobileOverlay').addEventListener('click', () => {
-            document.getElementById('adminSidebar').classList.remove('active');
-            document.getElementById('mobileOverlay').classList.remove('active');
-        });
-        
-        // Product modal
-        document.getElementById('addProductBtn')?.addEventListener('click', () => {
-            document.getElementById('productModal').classList.add('active');
-        });
-        
-        document.querySelectorAll('.modal-close').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+            
+            document.getElementById('mobileOverlay')?.addEventListener('click', () => {
+                document.getElementById('adminSidebar').classList.remove('active');
+                document.getElementById('mobileOverlay').classList.remove('active');
             });
+            
+            // Product modal
+            document.getElementById('addProductBtn')?.addEventListener('click', () => {
+                document.getElementById('productModal').classList.add('active');
+            });
+            
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+                });
+            });
+            
+            console.log('✅ Admin panel UI initialized');
         });
     </script>
 </body>
