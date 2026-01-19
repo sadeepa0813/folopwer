@@ -323,8 +323,7 @@ function generateTrackingId(productId, customerName) {
     const paddedProductId = String(productId).padStart(3, '0');
     
     // Format: FLOWER#PRODUCT_ID-RANDOM4-RANDOM3-INITIALS
-    const trackingId = `FLOWER#${paddedProductId}-${random4}-${random3}`;
-       
+    const trackingId = `FLOWER#${paddedProductId}-${random4}-${random3}-${customerInitials}`;
     
     console.log('✅ Tracking ID generated:', trackingId);
     return trackingId;
