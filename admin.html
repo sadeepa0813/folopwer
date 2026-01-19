@@ -5,10 +5,387 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - 3D Store</title>
     
-    <!-- ... existing head content ... -->
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
     <style>
-        /* ... existing styles ... */
+        /* Additional Admin Styles */
+        .stock-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .stock-in { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .stock-out { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .stock-low { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 12px 18px;
+            border-radius: 12px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: var(--primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 0.95rem;
+            min-height: 50px;
+            flex: 1;
+            min-width: 160px;
+        }
+        
+        .action-btn:hover {
+            background: rgba(99, 102, 241, 0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2);
+        }
+        
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 15px 50px 15px 20px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+        
+        .search-box i {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+        
+        .filter-options {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-chip {
+            padding: 8px 18px;
+            background: rgba(148, 163, 184, 0.15);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+            font-weight: 500;
+        }
+        
+        .filter-chip.active {
+            background: rgba(99, 102, 241, 0.25);
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        }
+        
+        .customer-phone-link {
+            color: var(--accent);
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .customer-phone-link:hover {
+            text-decoration: underline;
+            color: var(--primary);
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .order-action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+        
+        .confirm-btn { 
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        .cancel-btn { 
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+        .view-btn { 
+            background: linear-gradient(135deg, #6366f1, #818cf8);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+        
+        .order-action-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+        }
+        
+        .stock-input {
+            width: 90px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            text-align: center;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        
+        .stock-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        
+        .today-badge {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+        
+        .stats-card {
+            position: relative;
+            overflow: hidden;
+            padding: 25px;
+        }
+        
+        .stats-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .stats-card.products::after { 
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+        .stats-card.orders::after { 
+            background: linear-gradient(90deg, var(--accent), #22d3ee);
+        }
+        .stats-card.revenue::after { 
+            background: linear-gradient(90deg, var(--success), #84cc16);
+        }
+        .stats-card.pending::after { 
+            background: linear-gradient(90deg, var(--warning), #f59e0b);
+        }
+        
+        /* Admin Specific Styles */
+        .admin-section {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s, transform 0.4s;
+        }
+        
+        .admin-section.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        nav {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(25px);
+            border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 0.5px;
+        }
+        
+        .nav-logo span:first-child {
+            font-size: 2.2rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .nav-item {
+            padding: 12px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s;
+            color: rgba(255, 255, 255, 0.8);
+            min-height: 50px;
+            min-width: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .nav-item:hover {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(52, 211, 153, 0.15));
+            color: var(--primary);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.2);
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.3);
+        }
+        
+        .table-responsive table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .table-responsive th {
+            text-align: left;
+            padding: 18px 20px;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 700;
+            border-bottom: 2px solid rgba(16, 185, 129, 0.3);
+            font-size: 0.95rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .table-responsive td {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            vertical-align: middle;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+        
+        .table-responsive tr:hover td {
+            background: rgba(16, 185, 129, 0.08);
+        }
+        
+        .table-responsive tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Button Styles for Admin */
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), var(--accent));
+            color: white;
+            border: none;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #f59e0b);
+            color: white;
+            border: none;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #f87171);
+            color: white;
+            border: none;
+        }
+        
+        .filter-btn {
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            min-height: 45px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .filter-btn.active {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            min-height: 40px;
+            border-radius: 10px;
+        }
         
         /* Mobile Hamburger Menu */
         .hamburger-menu {
@@ -164,25 +541,7 @@
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        @media (max-width: 768px) {
-            .hamburger-menu {
-                display: flex;
-            }
-            
-            .nav-links {
-                display: none;
-            }
-            
-            nav {
-                padding: 15px 20px;
-            }
-            
-            .nav-logo span:nth-child(2) {
-                font-size: 1.1rem;
-            }
-        }
-        
-        /* Bulk Action Improvements */
+        /* Bulk Action Container */
         .bulk-action-container {
             display: flex;
             gap: 15px;
@@ -204,6 +563,7 @@
             border-radius: 8px;
             cursor: pointer;
             user-select: none;
+            min-width: 140px;
         }
         
         .bulk-select-all:hover {
@@ -226,7 +586,7 @@
             background: rgba(16, 185, 129, 0.15) !important;
         }
         
-        /* Quick Confirm Buttons */
+        /* Quick Confirm Button */
         .quick-confirm-btn {
             position: fixed;
             bottom: 30px;
@@ -238,7 +598,7 @@
             color: white;
             border: none;
             cursor: pointer;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             font-size: 1.5rem;
@@ -252,7 +612,140 @@
             box-shadow: 0 15px 30px rgba(16, 185, 129, 0.5);
         }
         
+        .quick-confirm-btn span {
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+        
+        /* Loading States */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(16, 185, 129, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            color: rgba(255, 255, 255, 0.2);
+            margin-bottom: 20px;
+        }
+        
+        .empty-state-title {
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 10px;
+        }
+        
+        .empty-state-message {
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 25px;
+            font-size: 1rem;
+        }
+        
+        /* Mobile Optimizations */
         @media (max-width: 768px) {
+            .hamburger-menu {
+                display: flex;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            nav {
+                padding: 15px 20px;
+            }
+            
+            .nav-logo span:nth-child(2) {
+                font-size: 1.1rem;
+            }
+            
+            .table-responsive {
+                font-size: 0.85rem;
+                margin: 0 -1rem;
+                width: calc(100% + 2rem);
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+            }
+            
+            .table-responsive th,
+            .table-responsive td {
+                padding: 12px 15px;
+            }
+            
+            .order-actions {
+                flex-direction: row;
+                justify-content: center;
+            }
+            
+            .order-action-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 0.9rem;
+            }
+            
+            .quick-actions {
+                gap: 8px;
+            }
+            
+            .action-btn {
+                padding: 10px 14px;
+                font-size: 0.85rem;
+                min-width: 140px;
+                flex: 1 1 calc(50% - 8px);
+            }
+            
+            .stats-card {
+                padding: 20px;
+            }
+            
+            .stats-card h3.mono {
+                font-size: 1.8rem !important;
+            }
+            
+            .filter-options {
+                justify-content: center;
+                gap: 8px;
+            }
+            
+            .filter-chip {
+                padding: 6px 14px;
+                font-size: 0.85rem;
+            }
+            
+            .bulk-action-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .bulk-select-all {
+                min-width: auto;
+            }
+            
             .quick-confirm-btn {
                 bottom: 20px;
                 right: 20px;
@@ -260,6 +753,77 @@
                 height: 50px;
                 font-size: 1.3rem;
             }
+        }
+        
+        @media (max-width: 480px) {
+            .action-btn {
+                flex: 1 1 100%;
+                min-width: auto;
+            }
+            
+            .table-responsive th,
+            .table-responsive td {
+                padding: 10px 12px;
+                font-size: 0.82rem;
+            }
+            
+            .stats-card {
+                padding: 15px;
+            }
+            
+            .stats-card h3.mono {
+                font-size: 1.6rem !important;
+            }
+            
+            .nav-item {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+                gap: 8px;
+            }
+            
+            .mobile-nav {
+                width: 250px;
+            }
+        }
+        
+        /* Tracking ID Copy Button */
+        .tracking-id {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tracking-id:hover {
+            color: var(--primary);
+        }
+        
+        .copy-btn {
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .copy-btn:hover {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+        }
+        
+        /* Pulse Animation for New Orders */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        
+        .new-order {
+            animation: pulse 2s infinite;
         }
     </style>
 </head>
@@ -294,7 +858,7 @@
             </button>
         </div>
         
-        <!-- Mobile Hamburger Menu -->
+        <!-- Mobile Hamburger Menu (3 lines) -->
         <button class="hamburger-menu" onclick="toggleMobileMenu()">
             <span></span>
             <span></span>
@@ -342,13 +906,249 @@
 
     <!-- Main Container -->
     <div class="container">
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="admin-section active">
+            <h2 class="mb-3">📊 Dashboard Overview</h2>
+            <p style="opacity: 0.8; margin-bottom: 30px; font-size: 1.1rem;">
+                Welcome back, <span id="adminEmail" style="color: var(--primary); font-weight: 600;">Admin</span>! 
+                <span id="lastLogin" style="opacity: 0.6; font-size: 0.9rem;">Last login: -</span>
+            </p>
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <div class="action-btn" onclick="showSection('products'); setTimeout(() => document.getElementById('addProductBtn').click(), 100);">
+                    <i class="fas fa-plus-circle"></i> Add Product
+                </div>
+                <div class="action-btn" onclick="showSection('orders'); setTimeout(() => filterOrders('today'), 100);">
+                    <i class="fas fa-calendar-day"></i> Today's Orders
+                </div>
+                <div class="action-btn" onclick="showOutOfStock()">
+                    <i class="fas fa-exclamation-triangle"></i> Out of Stock
+                </div>
+                <div class="action-btn" onclick="exportOrders()">
+                    <i class="fas fa-download"></i> Export Orders
+                </div>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; margin-bottom: 40px;">
+                <div class="card-3d stats-card products">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="font-size: 2.8rem; color: var(--primary);">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                    </div>
+                    <h3 class="mono" id="totalProducts" style="font-size: 2.8rem; color: var(--primary); margin-bottom: 5px;">0</h3>
+                    <p style="opacity: 0.8; font-weight: 600; margin-bottom: 8px;">Total Products</p>
+                    <small id="stockInfo" style="opacity: 0.6; font-size: 0.85rem;">🔄 Loading stock info...</small>
+                </div>
+                
+                <div class="card-3d stats-card orders">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="font-size: 2.8rem; color: var(--accent);">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                    </div>
+                    <h3 class="mono" id="totalOrders" style="font-size: 2.8rem; color: var(--accent); margin-bottom: 5px;">0</h3>
+                    <p style="opacity: 0.8; font-weight: 600; margin-bottom: 8px;">Total Orders</p>
+                    <small id="todayOrders" style="opacity: 0.6; font-size: 0.85rem;">📅 Today: 0</small>
+                </div>
+                
+                <div class="card-3d stats-card pending">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="font-size: 2.8rem; color: var(--warning);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                    </div>
+                    <h3 class="mono" id="pendingOrders" style="font-size: 2.8rem; color: var(--warning); margin-bottom: 5px;">0</h3>
+                    <p style="opacity: 0.8; font-weight: 600; margin-bottom: 8px;">Pending Orders</p>
+                    <small style="opacity: 0.6; font-size: 0.85rem;">⚠️ Need attention</small>
+                </div>
+                
+                <div class="card-3d stats-card revenue">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="font-size: 2.8rem; color: var(--success);">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                    </div>
+                    <h3 class="mono" id="totalRevenue" style="font-size: 2rem; color: var(--success); margin-bottom: 5px;">Rs. 0</h3>
+                    <p style="opacity: 0.8; font-weight: 600; margin-bottom: 8px;">Total Revenue</p>
+                    <small id="todayRevenue" style="opacity: 0.6; font-size: 0.85rem;">💰 Today: Rs. 0</small>
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="card-3d">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h3 class="mb-0" style="color: var(--primary);">
+                        <i class="fas fa-history"></i> Recent Orders
+                    </h3>
+                    <button class="btn-3d btn-primary" onclick="showSection('orders')">
+                        View All <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+                <div id="recentOrdersTable" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading recent orders...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Section -->
+        <div id="products" class="admin-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2 class="mb-0" style="color: var(--primary);">
+                    <i class="fas fa-boxes"></i> Product Management
+                </h2>
+                <button id="addProductBtn" class="btn-3d btn-primary" onclick="showAddProductForm()">
+                    <i class="fas fa-plus-circle"></i> Add New Product
+                </button>
+            </div>
+            
+            <!-- Search & Filters -->
+            <div class="card-3d mb-3">
+                <div class="search-box">
+                    <input type="text" id="productSearch" placeholder="🔍 Search products by name or description..." 
+                           onkeyup="searchProducts()">
+                    <i class="fas fa-search"></i>
+                </div>
+                
+                <div class="filter-options">
+                    <div class="filter-chip active" onclick="filterProducts('all')">
+                        <i class="fas fa-layer-group"></i> All Products
+                    </div>
+                    <div class="filter-chip" onclick="filterProducts('in_stock')">
+                        <i class="fas fa-check-circle"></i> In Stock
+                    </div>
+                    <div class="filter-chip" onclick="filterProducts('out_of_stock')">
+                        <i class="fas fa-times-circle"></i> Out of Stock
+                    </div>
+                    <div class="filter-chip" onclick="filterProducts('low_stock')">
+                        <i class="fas fa-exclamation-circle"></i> Low Stock
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Product Form (Initially Hidden) -->
+            <div id="addProductFormContainer" class="card-3d mb-3" style="display: none; border: 2px dashed rgba(16, 185, 129, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h3 class="mb-0" style="color: var(--primary);">
+                        <i class="fas fa-plus-circle"></i> Add New Product
+                    </h3>
+                    <button class="btn-3d btn-secondary btn-small" onclick="hideAddProductForm()">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+                <form id="addProductForm" onsubmit="handleAddProduct(event)">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px;">
+                        <div class="form-group">
+                            <label><i class="fas fa-tag"></i> Product Name *</label>
+                            <input type="text" name="name" required placeholder="e.g., Wireless Headphones">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-money-bill-wave"></i> Price (Rs.) *</label>
+                            <input type="number" name="price" required placeholder="15000" min="0" step="0.01">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-boxes"></i> Stock Quantity *</label>
+                            <input type="number" name="stock" required placeholder="100" min="0" value="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-bell"></i> Low Stock Alert</label>
+                            <input type="number" name="low_stock_alert" placeholder="10" min="0" value="5">
+                            <small style="opacity: 0.6;">Alert when stock goes below this</small>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label><i class="fas fa-align-left"></i> Description *</label>
+                            <textarea name="description" required rows="3" placeholder="Brief product description..."></textarea>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label><i class="fas fa-image"></i> Product Image *</label>
+                            <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
+                                <label for="productImage" class="btn-3d btn-primary" style="cursor: pointer; margin: 0;">
+                                    <i class="fas fa-cloud-upload-alt"></i> Choose Image
+                                </label>
+                                <input type="file" id="productImage" accept="image/*" style="display: none;" onchange="previewImage(event)" required>
+                                <span id="fileName" style="opacity: 0.8; font-size: 0.95rem;">No file chosen</span>
+                            </div>
+                            <div id="imagePreview" class="hidden" style="margin-top: 20px;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; margin-top: 30px;">
+                        <button type="button" class="btn-3d btn-secondary" onclick="hideAddProductForm()" style="flex: 1;">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn-3d btn-primary" style="flex: 2;">
+                            <i class="fas fa-save"></i> Add Product
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Products List -->
+            <div class="card-3d">
+                <div id="productsTableContainer" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading products...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Orders Section -->
         <div id="orders" class="admin-section">
             <h2 class="mb-3" style="color: var(--primary);">
                 <i class="fas fa-shopping-cart"></i> Order Management
             </h2>
             
-            <!-- Bulk Actions Container -->
+            <!-- Order Filters -->
+            <div class="card-3d mb-3">
+                <div class="search-box">
+                    <input type="text" id="orderSearch" placeholder="🔍 Search by customer, phone, or tracking ID..." 
+                           onkeyup="searchOrders()">
+                    <i class="fas fa-search"></i>
+                </div>
+                
+                <div class="filter-options">
+                    <button class="btn-3d btn-secondary filter-btn active" onclick="filterOrders('all')">
+                        <i class="fas fa-list"></i> All Orders
+                    </button>
+                    <button class="btn-3d btn-warning filter-btn" onclick="filterOrders('Pending')">
+                        <i class="fas fa-clock"></i> Pending
+                    </button>
+                    <button class="btn-3d btn-success filter-btn" onclick="filterOrders('Confirmed')">
+                        <i class="fas fa-check-circle"></i> Confirmed
+                    </button>
+                    <button class="btn-3d btn-danger filter-btn" onclick="filterOrders('Cancelled')">
+                        <i class="fas fa-times-circle"></i> Cancelled
+                    </button>
+                    <button class="btn-3d btn-primary filter-btn" onclick="filterOrders('today')">
+                        <i class="fas fa-calendar-day"></i> Today
+                    </button>
+                    <button class="btn-3d btn-secondary filter-btn" onclick="filterOrders('this_week')">
+                        <i class="fas fa-calendar-week"></i> This Week
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Bulk Actions -->
             <div class="bulk-action-container">
                 <div class="bulk-select-all" onclick="toggleSelectAll()">
                     <input type="checkbox" id="selectAllCheckbox">
@@ -374,15 +1174,97 @@
             </div>
             
             <!-- Quick Confirm Button (for mobile) -->
-            <button class="quick-confirm-btn" onclick="quickConfirmAll()" title="Confirm All Selected" id="quickConfirmBtn" style="display: none;">
+            <button class="quick-confirm-btn" onclick="quickConfirmAll()" title="Confirm All Selected" id="quickConfirmBtn">
                 <i class="fas fa-check"></i>
             </button>
             
-            <!-- ... rest of the orders section ... -->
+            <div class="card-3d">
+                <div id="ordersTableContainer" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading orders...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customers Section -->
+        <div id="customers" class="admin-section">
+            <h2 class="mb-3" style="color: var(--primary);">
+                <i class="fas fa-users"></i> Customer Management
+            </h2>
+            
+            <!-- Customer Search -->
+            <div class="card-3d mb-3">
+                <div class="search-box">
+                    <input type="text" id="customerSearch" placeholder="🔍 Search customers by name or phone number..." 
+                           onkeyup="searchCustomers()">
+                    <i class="fas fa-search"></i>
+                </div>
+            </div>
+            
+            <div class="card-3d">
+                <div id="customersTableContainer" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading customers...</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Script for Mobile Menu and Bulk Actions -->
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 4rem; color: var(--danger); margin-bottom: 10px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 style="margin-bottom: 10px; color: var(--danger);">Confirm Delete</h3>
+                <p style="opacity: 0.8; margin-bottom: 5px;">This action cannot be undone</p>
+            </div>
+            <p id="deleteMessage" style="margin-bottom: 30px; text-align: center; font-size: 1.1rem;"></p>
+            <div style="display: flex; gap: 15px;">
+                <button class="btn-3d btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn-3d btn-danger" onclick="confirmDelete()" style="flex: 1;">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div class="modal-overlay" id="editProductModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeEditProductModal()">&times;</span>
+            <div id="editProductModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div class="modal-overlay" id="orderDetailsModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeOrderDetailsModal()">&times;</span>
+            <div id="orderDetailsModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Customer Details Modal -->
+    <div class="modal-overlay" id="customerDetailsModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeCustomerDetailsModal()">&times;</span>
+            <div id="customerDetailsModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast"></div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="background.js"></script>
+    <script src="admin.js"></script>
+    
+    <!-- Inline Script for Mobile Menu -->
     <script>
         // Mobile Menu Functions
         function toggleMobileMenu() {
@@ -409,286 +1291,12 @@
             document.body.style.overflow = '';
         }
         
-        // Update mobile navigation when changing sections
-        function showSection(sectionId) {
-            // Close mobile menu if open
-            closeMobileMenu();
-            
-            // ... existing showSection code ...
-            
-            // Update mobile nav items
-            document.querySelectorAll('.mobile-nav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            const sectionMap = {
-                'dashboard': 0,
-                'products': 1,
-                'orders': 2,
-                'customers': 3
-            };
-            
-            if (sectionMap[sectionId] !== undefined) {
-                document.querySelectorAll('.mobile-nav-item')[sectionMap[sectionId]].classList.add('active');
-            }
-        }
-        
-        // Bulk Action Functions
-        function toggleSelectAll() {
-            const checkbox = document.getElementById('selectAllCheckbox');
-            const isChecked = !checkbox.checked;
-            checkbox.checked = isChecked;
-            
-            // Clear current selection
-            selectedOrders.clear();
-            
-            // Add or remove all filtered orders
-            let filteredOrders = allOrders;
-            if (currentFilter === 'today') {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                filteredOrders = allOrders.filter(o => new Date(o.created_at) >= today);
-            } else if (currentFilter === 'this_week') {
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                filteredOrders = allOrders.filter(o => new Date(o.created_at) >= weekAgo);
-            } else if (currentFilter !== 'all') {
-                filteredOrders = allOrders.filter(o => o.status === currentFilter);
-            }
-            
-            if (isChecked) {
-                filteredOrders.forEach(order => {
-                    selectedOrders.add(order.tracking_id);
-                });
-            }
-            
-            updateSelectedCount();
-            displayOrders(allOrders);
-            
-            // Show/hide quick confirm button
-            const quickConfirmBtn = document.getElementById('quickConfirmBtn');
-            if (quickConfirmBtn) {
-                quickConfirmBtn.style.display = selectedOrders.size > 0 ? 'flex' : 'none';
-            }
-        }
-        
-        function clearSelection() {
-            selectedOrders.clear();
-            updateSelectedCount();
-            displayOrders(allOrders);
-            
-            // Uncheck select all checkbox
-            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-            if (selectAllCheckbox) {
-                selectAllCheckbox.checked = false;
-            }
-            
-            // Hide quick confirm button
-            const quickConfirmBtn = document.getElementById('quickConfirmBtn');
-            if (quickConfirmBtn) {
-                quickConfirmBtn.style.display = 'none';
-            }
-            
-            showToast('Selection cleared', 'info');
-        }
-        
-        function quickConfirmAll() {
-            if (selectedOrders.size === 0) {
-                showToast('No orders selected', 'warning');
-                return;
-            }
-            
-            if (confirm(`Confirm ${selectedOrders.size} selected order(s)?`)) {
-                // Set bulk action to confirm and apply
-                document.getElementById('bulkAction').value = 'confirm';
-                applyBulkAction();
-            }
-        }
-        
-        // Update displayOrders to show selected rows
-        function displayOrders(orders) {
-            let filteredOrders = orders;
-            
-            // Apply filter
-            if (currentFilter === 'today') {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                filteredOrders = orders.filter(o => new Date(o.created_at) >= today);
-            } else if (currentFilter === 'this_week') {
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                filteredOrders = orders.filter(o => new Date(o.created_at) >= weekAgo);
-            } else if (currentFilter !== 'all') {
-                filteredOrders = orders.filter(o => o.status === currentFilter);
-            }
-            
-            const container = document.getElementById('ordersTableContainer');
-            
-            if (!filteredOrders || filteredOrders.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📭</div>
-                        <div class="empty-state-title">No Orders Found</div>
-                        <div class="empty-state-message">
-                            ${currentFilter === 'today' ? 'No orders placed today' : 
-                              currentFilter === 'this_week' ? 'No orders this week' : 
-                              'No orders to display'}
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-            
-            const html = filteredOrders.map(order => {
-                const isSelected = selectedOrders.has(order.tracking_id);
-                return `
-                    <tr class="${isSelected ? 'selected-order' : ''}" onclick="handleOrderRowClick('${order.tracking_id}', event)">
-                        <td>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <input type="checkbox" 
-                                       ${isSelected ? 'checked' : ''}
-                                       onclick="toggleOrderSelection('${order.tracking_id}'); event.stopPropagation()"
-                                       style="width: 18px; height: 18px; cursor: pointer;">
-                                <div class="tracking-id" onclick="copyTrackingId('${order.tracking_id}', event)">
-                                    <span class="mono" style="font-size: 0.9rem;">${order.tracking_id}</span>
-                                    <button class="copy-btn" title="Copy Tracking ID">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <strong>${order.customer_name}</strong>
-                            <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 3px;">
-                                ${order.address ? order.address.substring(0, 30) + '...' : 'No address'}
-                            </div>
-                        </td>
-                        <td>
-                            <a href="tel:${order.phone_number}" class="customer-phone-link" onclick="event.stopPropagation()">
-                                <i class="fas fa-phone"></i> ${order.phone_number}
-                            </a>
-                        </td>
-                        <td>
-                            <strong>${order.product_name}</strong>
-                            <div style="font-size: 0.85rem; opacity: 0.7; margin-top: 3px;">
-                                Qty: ${order.quantity}
-                            </div>
-                        </td>
-                        <td class="mono" style="font-weight: 700; color: var(--success);">
-                            Rs. ${order.total.toLocaleString()}
-                        </td>
-                        <td>
-                            <span class="status-badge status-${order.status.toLowerCase()}">
-                                <i class="fas fa-${getStatusIcon(order.status)}"></i>
-                                ${order.status}
-                            </span>
-                        </td>
-                        <td style="font-size: 0.9rem; opacity: 0.8;">
-                            ${new Date(order.created_at).toLocaleDateString('en-US', { 
-                                month: 'short', 
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            })}
-                            ${isToday(order.created_at) ? '<span class="today-badge">Today</span>' : ''}
-                        </td>
-                        <td>
-                            <div class="order-actions">
-                                <button class="order-action-btn view-btn" 
-                                        onclick='viewOrderDetails(${JSON.stringify(order).replace(/'/g, "&#39;")})' 
-                                        title="View Details">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                ${order.status === 'Pending' ? `
-                                    <button class="order-action-btn confirm-btn" 
-                                            onclick="updateOrderStatus('${order.tracking_id}', 'Confirmed')"
-                                            title="Confirm Order">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                ` : ''}
-                                ${order.status !== 'Cancelled' ? `
-                                    <button class="order-action-btn cancel-btn" 
-                                            onclick="updateOrderStatus('${order.tracking_id}', 'Cancelled')"
-                                            title="Cancel Order">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-            
-            container.innerHTML = `
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 220px;">Selection & Tracking ID</th>
-                                <th>Customer</th>
-                                <th>Phone</th>
-                                <th>Product</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>${html}</tbody>
-                    </table>
-                </div>
-            `;
-            
-            // Update select all checkbox state
-            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-            if (selectAllCheckbox) {
-                selectAllCheckbox.checked = filteredOrders.length > 0 && 
-                    filteredOrders.every(order => selectedOrders.has(order.tracking_id));
-            }
-            
-            // Show/hide quick confirm button
-            const quickConfirmBtn = document.getElementById('quickConfirmBtn');
-            if (quickConfirmBtn) {
-                quickConfirmBtn.style.display = selectedOrders.size > 0 ? 'flex' : 'none';
-            }
-        }
-        
-        // Initialize mobile menu update for pending orders
-        function updatePendingBadge(count) {
-            const desktopBadge = document.getElementById('pendingBadge');
-            const mobileBadge = document.getElementById('mobilePendingBadge');
-            
-            if (desktopBadge) {
-                desktopBadge.textContent = count;
-                desktopBadge.style.display = count > 0 ? 'inline-block' : 'none';
-            }
-            
-            if (mobileBadge) {
-                mobileBadge.textContent = count;
-                mobileBadge.style.display = count > 0 ? 'inline-block' : 'none';
-            }
-        }
-        
-        // Update loadDashboardStats to update both badges
-        async function loadDashboardStats() {
-            try {
-                // ... existing code ...
-                
-                // Update pending badge with count
-                updatePendingBadge(pendingRes.count || 0);
-                
-                // ... rest of the code ...
-            } catch (error) {
-                console.error('❌ Dashboard error:', error);
-            }
-        }
-        
         // Close mobile menu when clicking outside
         document.addEventListener('click', function(event) {
             const mobileNav = document.querySelector('.mobile-nav');
             const hamburger = document.querySelector('.hamburger-menu');
             
-            if (mobileNav.classList.contains('active') && 
+            if (mobileNav && mobileNav.classList.contains('active') && 
                 !mobileNav.contains(event.target) && 
                 !hamburger.contains(event.target)) {
                 closeMobileMenu();
@@ -700,6 +1308,19 @@
             if (event.key === 'Escape') {
                 closeMobileMenu();
             }
+        });
+        
+        // Mobile menu navigation
+        document.querySelectorAll('.mobile-nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const sectionId = this.getAttribute('data-section') || 
+                    (this.textContent.includes('Dashboard') ? 'dashboard' :
+                     this.textContent.includes('Products') ? 'products' :
+                     this.textContent.includes('Orders') ? 'orders' :
+                     this.textContent.includes('Customers') ? 'customers' : 'dashboard');
+                
+                showSection(sectionId);
+            });
         });
     </script>
 </body>
