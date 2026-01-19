@@ -919,7 +919,7 @@
                 <div class="action-btn" onclick="showSection('products'); setTimeout(() => document.getElementById('addProductBtn').click(), 100);">
                     <i class="fas fa-plus-circle"></i> Add Product
                 </div>
-                <div class="action-btn" onclick="showSection('orders'); setTimeout(() => filterOrders('today'), 100);">
+                <div class="action-btn" onclick="showSection('orders'); setTimeout(() => filterOrders('today', event), 100);">
                     <i class="fas fa-calendar-day"></i> Today's Orders
                 </div>
                 <div class="action-btn" onclick="showOutOfStock()">
@@ -1126,23 +1126,23 @@
                     <i class="fas fa-search"></i>
                 </div>
                 
-                <div class="filter-options">
-                    <button class="btn-3d btn-secondary filter-btn active" onclick="filterOrders('all')">
+                <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                    <button class="btn-3d btn-secondary filter-btn active" onclick="filterOrders('all', event)">
                         <i class="fas fa-list"></i> All Orders
                     </button>
-                    <button class="btn-3d btn-warning filter-btn" onclick="filterOrders('Pending')">
+                    <button class="btn-3d btn-warning filter-btn" onclick="filterOrders('Pending', event)">
                         <i class="fas fa-clock"></i> Pending
                     </button>
-                    <button class="btn-3d btn-success filter-btn" onclick="filterOrders('Confirmed')">
+                    <button class="btn-3d btn-success filter-btn" onclick="filterOrders('Confirmed', event)">
                         <i class="fas fa-check-circle"></i> Confirmed
                     </button>
-                    <button class="btn-3d btn-danger filter-btn" onclick="filterOrders('Cancelled')">
+                    <button class="btn-3d btn-danger filter-btn" onclick="filterOrders('Cancelled', event)">
                         <i class="fas fa-times-circle"></i> Cancelled
                     </button>
-                    <button class="btn-3d btn-primary filter-btn" onclick="filterOrders('today')">
+                    <button class="btn-3d btn-primary filter-btn" onclick="filterOrders('today', event)">
                         <i class="fas fa-calendar-day"></i> Today
                     </button>
-                    <button class="btn-3d btn-secondary filter-btn" onclick="filterOrders('this_week')">
+                    <button class="btn-3d btn-secondary filter-btn" onclick="filterOrders('this_week', event)">
                         <i class="fas fa-calendar-week"></i> This Week
                     </button>
                 </div>
@@ -1308,19 +1308,6 @@
             if (event.key === 'Escape') {
                 closeMobileMenu();
             }
-        });
-        
-        // Mobile menu navigation
-        document.querySelectorAll('.mobile-nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                const sectionId = this.getAttribute('data-section') || 
-                    (this.textContent.includes('Dashboard') ? 'dashboard' :
-                     this.textContent.includes('Products') ? 'products' :
-                     this.textContent.includes('Orders') ? 'orders' :
-                     this.textContent.includes('Customers') ? 'customers' : 'dashboard');
-                
-                showSection(sectionId);
-            });
         });
     </script>
 </body>
