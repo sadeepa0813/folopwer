@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - 3D Store</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional Admin Styles */
+        .stock-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .stock-in { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .stock-out { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .stock-low { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 12px 18px;
+            border-radius: 12px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: var(--primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 0.95rem;
+            min-height: 50px;
+            flex: 1;
+            min-width: 160px;
+        }
+        
+        .action-btn:hover {
+            background: rgba(99, 102, 241, 0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2);
+        }
+        
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 15px 50px 15px 20px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+        
+        .search-box i {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+        
+        .filter-options {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-chip {
+            padding: 8px 18px;
+            background: rgba(148, 163, 184, 0.15);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+            font-weight: 500;
+        }
+        
+        .filter-chip.active {
+            background: rgba(99, 102, 241, 0.25);
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        }
+        
+        .customer-phone-link {
+            color: var(--accent);
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .customer-phone-link:hover {
+            text-decoration: underline;
+            color: var(--primary);
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .order-action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+        
+        .confirm-btn { 
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        .cancel-btn { 
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+        .view-btn { 
+            background: linear-gradient(135deg, #6366f1, #818cf8);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+        
+        .order-action-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+        }
+        
+        .stock-input {
+            width: 90px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            text-align: center;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        
+        .stock-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        
+        .today-badge {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+        
+        .stats-card {
+            position: relative;
+            overflow: hidden;
+            padding: 25px;
+        }
+        
+        .stats-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .stats-card.products::after { 
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+        .stats-card.orders::after { 
+            background: linear-gradient(90deg, var(--accent), #22d3ee);
+        }
+        .stats-card.revenue::after { 
+            background: linear-gradient(90deg, var(--success), #84cc16);
+        }
+        .stats-card.pending::after { 
+            background: linear-gradient(90deg, var(--warning), #f59e0b);
+        }
+        
+        /* Admin Specific Styles */
+        .admin-section {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s, transform 0.4s;
+        }
+        
+        .admin-section.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        nav {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(25px);
+            border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 0.5px;
+        }
+        
+        .nav-logo span:first-child {
+            font-size: 2.2rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .nav-item {
+            padding: 12px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s;
+            color: rgba(255, 255, 255, 0.8);
+            min-height: 50px;
+            min-width: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .nav-item:hover {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(52, 211, 153, 0.15));
+            color: var(--primary);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.2);
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.3);
+        }
+        
+        .table-responsive table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .table-responsive th {
+            text-align: left;
+            padding: 18px 20px;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 700;
+            border-bottom: 2px solid rgba(16, 185, 129, 0.3);
+            font-size: 0.95rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .table-responsive td {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            vertical-align: middle;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+        
+        .table-responsive tr:hover td {
+            background: rgba(16, 185, 129, 0.08);
+        }
+        
+        .table-responsive tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Button Styles for Admin */
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), var(--accent));
+            color: white;
+            border: none;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #f59e0b);
+            color: white;
+            border: none;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #f87171);
+            color: white;
+            border: none;
+        }
+        
+        .filter-btn {
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            min-height: 45px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .filter-btn.active {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            min-height: 40px;
+            border-radius: 10px;
+        }
+        
+        /* ==================== NOTIFICATION STYLES ==================== */
+        .notification-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 400px;
+            pointer-events: none;
+        }
+        
+        /* Notification Bell Badge */
+        .notification-count-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
+            animation: pulse-badge 2s infinite;
+        }
+        
+        @keyframes pulse-badge {
+            0%, 100% {
+                box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
+            }
+            50% {
+                box-shadow: 0 2px 15px rgba(239, 68, 68, 0.8);
+            }
+        }
+        
+        /* Notification History Panel */
+        .notification-history-panel {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            width: 420px;
+            max-height: 600px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+            display: none;
+            flex-direction: column;
+            z-index: 10000;
+            overflow: hidden;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .notification-history-panel.open {
+            display: flex;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .notification-panel-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.05));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .notification-panel-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .notification-panel-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .mark-all-read-btn {
+            padding: 6px 12px;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px;
+            color: var(--primary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .mark-all-read-btn:hover {
+            background: rgba(16, 185, 129, 0.3);
+        }
+        
+        .close-panel-btn {
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .close-panel-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+        
+        .notification-panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            max-height: 500px;
+        }
+        
+        .notification-panel-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .notification-panel-body::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        
+        .notification-panel-body::-webkit-scrollbar-thumb {
+            background: rgba(16, 185, 129, 0.5);
+            border-radius: 10px;
+        }
+        
+        .notification-history-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .notification-history-item:hover {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            transform: translateX(-5px);
+        }
+        
+        .notification-history-item.unread {
+            border-left: 3px solid var(--primary);
+            background: rgba(16, 185, 129, 0.05);
+        }
+        
+        .notification-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+        
+        .notification-item-customer {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+        
+        .notification-item-time {
+            font-size: 0.75rem;
+            opacity: 0.6;
+        }
+        
+        .notification-item-details {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+        
+        .notification-item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .notification-item-tracking {
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            opacity: 0.7;
+        }
+        
+        .notification-item-total {
+            font-weight: 700;
+            color: var(--success);
+        }
+        
+        .notification-panel-empty {
+            text-align: center;
+            padding: 60px 20px;
+            opacity: 0.5;
+        }
+        
+        .notification-panel-empty i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+        
+        .order-notification {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+            border: 2px solid rgba(16, 185, 129, 0.5);
+            border-radius: 16px;
+            padding: 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 
+                        0 0 20px rgba(16, 185, 129, 0.3),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            overflow: hidden;
+            pointer-events: all;
+            backdrop-filter: blur(20px);
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(500px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .notification-fade-out {
+            animation: slideOutRight 0.3s ease-in forwards;
+        }
+        
+        @keyframes slideOutRight {
+            to {
+                transform: translateX(500px);
+                opacity: 0;
+            }
+        }
+        
+        .notification-header {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.1));
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            }
+            50% {
+                box-shadow: 0 4px 25px rgba(16, 185, 129, 0.7);
+            }
+        }
+        
+        .notification-title {
+            flex: 1;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--primary);
+        }
+        
+        .notification-close {
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .notification-close:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            transform: scale(1.1);
+        }
+        
+        .notification-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .notification-detail {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-left: 3px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .notification-detail i {
+            color: var(--primary);
+            font-size: 1rem;
+            min-width: 20px;
+        }
+        
+        .notification-actions {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .notification-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .notification-btn.view-btn {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(129, 140, 248, 0.2));
+            color: #818cf8;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+        
+        .notification-btn.view-btn:hover {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), rgba(129, 140, 248, 0.3));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+        
+        .notification-btn.confirm-btn {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(52, 211, 153, 0.2));
+            color: var(--primary);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .notification-btn.confirm-btn:hover {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.5), rgba(52, 211, 153, 0.3));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        /* Mobile Responsive for Notifications */
+        @media (max-width: 768px) {
+            .notification-container {
+                top: 70px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+            
+            .order-notification {
+                max-width: 100%;
+            }
+            
+            .notification-actions {
+                flex-direction: column;
+            }
+        }
+        
+        /* Mobile Hamburger Menu */
+        .hamburger-menu {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 30px;
+            height: 21px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 1001;
+        }
+        
+        .hamburger-menu span {
+            width: 100%;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+        
+        .hamburger-menu.active span:nth-child(1) {
+            transform: rotate(45deg) translate(6px, 6px);
+        }
+        
+        .hamburger-menu.active span:nth-child(2) {
+            opacity: 0;
+        }
+        
+        .hamburger-menu.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(6px, -6px);
+        }
+        
+        .mobile-nav-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .mobile-nav-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .mobile-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(16, 185, 129, 0.3);
+            z-index: 1000;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .mobile-nav.active {
+            transform: translateX(0);
+        }
+        
+        .mobile-nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .mobile-nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+        
+        .mobile-nav-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .mobile-nav-close:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+        
+        .mobile-nav-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .mobile-nav-item {
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        
+        .mobile-nav-item:hover {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+            transform: translateX(5px);
+        }
+        
+        .mobile-nav-item.active {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.1));
+            color: var(--primary);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .mobile-nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+        
+        .mobile-nav-footer {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Bulk Action Container */
+        .bulk-action-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: rgba(16, 185, 129, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            margin-bottom: 20px;
+        }
+        
+        .bulk-select-all {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            min-width: 140px;
+        }
+        
+        .bulk-select-all:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .bulk-select-all input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        /* Order Row Selection */
+        tr.selected-order {
+            background: rgba(16, 185, 129, 0.1) !important;
+            border-left: 3px solid var(--primary) !important;
+        }
+        
+        tr.selected-order:hover td {
+            background: rgba(16, 185, 129, 0.15) !important;
+        }
+        
+        /* Quick Confirm Button */
+        .quick-confirm-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--success), var(--accent));
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+            z-index: 100;
+            transition: all 0.3s;
+        }
+        
+        .quick-confirm-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 30px rgba(16, 185, 129, 0.5);
+        }
+        
+        .quick-confirm-btn span {
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+        
+        /* Loading States */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(16, 185, 129, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            color: rgba(255, 255, 255, 0.2);
+            margin-bottom: 20px;
+        }
+        
+        .empty-state-title {
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 10px;
+        }
+        
+        .empty-state-message {
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 25px;
+            font-size: 1rem;
+        }
+        
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .hamburger-menu {
+                display: flex;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            nav {
+                padding: 15px 20px;
+            }
+            
+            .nav-logo span:nth-child(2) {
+                font-size: 1.1rem;
+            }
+            
+            .table-responsive {
+                font-size: 0.85rem;
+                margin: 0 -1rem;
+                width: calc(100% + 2rem);
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+            }
+            
+            .table-responsive th,
+            .table-responsive td {
+                padding: 12px 15px;
+            }
+            
+            .order-actions {
+                flex-direction: row;
+                justify-content: center;
+            }
+            
+            .order-action-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 0.9rem;
+            }
+            
+            .quick-actions {
+                gap: 8px;
+            }
+            
+            .action-btn {
+                padding: 10px 14px;
+                font-size: 0.85rem;
+                min-width: 140px;
+                flex: 1 1 calc(50% - 8px);
+            }
+            
+            .stats-card {
+                padding: 20px;
+            }
+            
+            .stats-card h3.mono {
+                font-size: 1.8rem !important;
+            }
+            
+            .filter-options {
+                justify-content: center;
+                gap: 8px;
+            }
+            
+            .filter-chip {
+                padding: 6px 14px;
+                font-size: 0.85rem;
+            }
+            
+            .bulk-action-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .bulk-select-all {
+                min-width: auto;
+            }
+            
+            .quick-confirm-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                font-size: 1.3rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .action-btn {
+                flex: 1 1 100%;
+                min-width: auto;
+            }
+            
+            .table-responsive th,
+            .table-responsive td {
+                padding: 10px 12px;
+                font-size: 0.82rem;
+            }
+            
+            .stats-card {
+                padding: 15px;
+            }
+            
+            .stats-card h3.mono {
+                font-size: 1.6rem !important;
+            }
+            
+            .nav-item {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+                gap: 8px;
+            }
+            
+            .mobile-nav {
+                width: 250px;
+            }
+        }
+        
+        /* Tracking ID Copy Button */
+        .tracking-id {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tracking-id:hover {
+            color: var(--primary);
+        }
+        
+        .copy-btn {
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .copy-btn:hover {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+        }
+        
+        /* Pulse Animation for New Orders */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        
+        .new-order {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle Background Canvas -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-logo">
+            <span>⚙️</span>
+            <span>ADMIN DASHBOARD</span>
+        </div>
+        
+        <!-- Desktop Navigation -->
+        <div class="nav-links">
+            <div class="nav-item active" onclick="showSection('dashboard')">
+                <i class="fas fa-tachometer-alt"></i> <span class="nav-text">Dashboard</span>
+            </div>
+            <div class="nav-item" onclick="showSection('products')">
+                <i class="fas fa-box"></i> <span class="nav-text">Products</span>
+            </div>
+            <div class="nav-item" onclick="showSection('orders')">
+                <i class="fas fa-shopping-cart"></i> <span class="nav-text">Orders</span>
+                <span id="pendingBadge" class="today-badge" style="display: none;">0</span>
+            </div>
+            <div class="nav-item" onclick="showSection('customers')">
+                <i class="fas fa-users"></i> <span class="nav-text">Customers</span>
+            </div>
+            
+            <!-- Notification Bell Icon -->
+            <div class="nav-item notification-bell" onclick="toggleNotificationPanel()" style="position: relative;">
+                <i class="fas fa-bell"></i>
+                <span id="notificationBadge" class="notification-count-badge" style="display: none;">0</span>
+            </div>
+            
+            <button class="btn-3d btn-danger btn-small" onclick="handleLogout()">
+                <i class="fas fa-sign-out-alt"></i> <span class="logout-text">Logout</span>
+            </button>
+        </div>
+        
+        <!-- Mobile Hamburger Menu (3 lines) -->
+        <button class="hamburger-menu" onclick="toggleMobileMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </nav>
+
+    <!-- Mobile Navigation Overlay -->
+    <div class="mobile-nav-overlay" onclick="closeMobileMenu()"></div>
+
+    <!-- Mobile Navigation Menu -->
+    <div class="mobile-nav">
+        <div class="mobile-nav-header">
+            <div class="mobile-nav-logo">
+                <span>⚙️</span>
+                <span>ADMIN PANEL</span>
+            </div>
+            <button class="mobile-nav-close" onclick="closeMobileMenu()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="mobile-nav-items">
+            <div class="mobile-nav-item active" onclick="showSection('dashboard'); closeMobileMenu();">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </div>
+            <div class="mobile-nav-item" onclick="showSection('products'); closeMobileMenu();">
+                <i class="fas fa-box"></i> Products
+            </div>
+            <div class="mobile-nav-item" onclick="showSection('orders'); closeMobileMenu();">
+                <i class="fas fa-shopping-cart"></i> Orders
+                <span id="mobilePendingBadge" class="today-badge" style="margin-left: auto; display: none;">0</span>
+            </div>
+            <div class="mobile-nav-item" onclick="showSection('customers'); closeMobileMenu();">
+                <i class="fas fa-users"></i> Customers
+            </div>
+        </div>
+        
+        <div class="mobile-nav-footer">
+            <button class="btn-3d btn-danger" onclick="handleLogout()" style="width: 100%;">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="admin-section active">
+            <h2 class="mb-3">📊 Dashboard Overview</h2>
+            <p style="opacity: 0.8; margin-bottom: 30px; font-size: 1.1rem;">
+                Welcome back, <span id="adminEmail" style="color: var(--primary); font-weight: 600;">Admin</span>! 
+                <span id="lastLogin" style="opacity: 0.6; font-size: 0.9rem;">Last login: -</span>
+            </p>
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <div class="action-btn" onclick="showSection('products'); setTimeout(() => document.getElementById('addProductBtn').click(), 100);">
+                    <i class="fas fa-plus-circle"></i> Add Product
+                </div>
+                <div class="action-btn" onclick="showSection('orders'); setTimeout(() => filterOrders('today', event), 100);">
+                    <i class="fas fa-calendar-day"></i> Today's Orders
+                </div>
+                <div class="action-btn" onclick="showOutOfStock()">
+                    <i class="fas fa-exclamation-triangle"></i> Out of Stock
+                </div>
+                <div class="action-btn" onclick="exportOrders()">
+                    <i class="fas fa-download"></i> Export Orders
+                </div>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; margin-bottom: 40px;">
+                <div class="card-3d stats-card products">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="font-size: 2.8rem; color: var(--primary);">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                    </div>
+                    <h3 class="mono" id="totalProducts" style="font-size: 2.8rem; color: var(--primary); margin-bottom: 5px;">0</h3>
+                    <p style="opacity: 0.8; font-weight: 600; margin-bottom: 8px;">Total Products</p>
+                    <small id="stockInfo" style="opacity: 0.6; font-size: 0.85rem;">🔄 Loading stock info...</small>
+                </div>
+                
+                <div class="card-3d stats-card orders">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="font-size: 2.8rem; color: var(--accent);">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                    </div>
+                    <h3 class="mono" id="totalOrders" style="font-size: 2.8rem; color: var(--accent); margin-bottom: 5px;">0</h3>
+                    <p style="opacity: 0.8; font-weight: 600; margin-bottom: 8px;">Total Orders</p>
+                    <small id="todayOrders" style="opacity: 0.6; font-size: 0.85rem;">📅 Today: 0</small>
+                </div>
+                
+                <div class="card-3d stats-card pending">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="font-size: 2.8rem; color: var(--warning);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                    </div>
+                    <h3 class="mono" id="pendingOrders" style="font-size: 2.8rem; color: var(--warning); margin-bottom: 5px;">0</h3>
+                    <p style="opacity: 0.8; font-weight: 600; margin-bottom: 8px;">Pending Orders</p>
+                    <small style="opacity: 0.6; font-size: 0.85rem;">⚠️ Need attention</small>
+                </div>
+                
+                <div class="card-3d stats-card revenue">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="font-size: 2.8rem; color: var(--success);">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                    </div>
+                    <h3 class="mono" id="totalRevenue" style="font-size: 2rem; color: var(--success); margin-bottom: 5px;">Rs. 0</h3>
+                    <p style="opacity: 0.8; font-weight: 600; margin-bottom: 8px;">Total Revenue</p>
+                    <small id="todayRevenue" style="opacity: 0.6; font-size: 0.85rem;">💰 Today: Rs. 0</small>
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="card-3d">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h3 class="mb-0" style="color: var(--primary);">
+                        <i class="fas fa-history"></i> Recent Orders
+                    </h3>
+                    <button class="btn-3d btn-primary" onclick="showSection('orders')">
+                        View All <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+                <div id="recentOrdersTable" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading recent orders...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Section -->
+        <div id="products" class="admin-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2 class="mb-0" style="color: var(--primary);">
+                    <i class="fas fa-boxes"></i> Product Management
+                </h2>
+                <button id="addProductBtn" class="btn-3d btn-primary" onclick="showAddProductForm()">
+                    <i class="fas fa-plus-circle"></i> Add New Product
+                </button>
+            </div>
+            
+            <!-- Search & Filters -->
+            <div class="card-3d mb-3">
+                <div class="search-box">
+                    <input type="text" id="productSearch" placeholder="🔍 Search products by name or description..." 
+                           onkeyup="searchProducts()">
+                    <i class="fas fa-search"></i>
+                </div>
+                
+                <div class="filter-options">
+                    <div class="filter-chip active" onclick="filterProducts('all')">
+                        <i class="fas fa-layer-group"></i> All Products
+                    </div>
+                    <div class="filter-chip" onclick="filterProducts('in_stock')">
+                        <i class="fas fa-check-circle"></i> In Stock
+                    </div>
+                    <div class="filter-chip" onclick="filterProducts('out_of_stock')">
+                        <i class="fas fa-times-circle"></i> Out of Stock
+                    </div>
+                    <div class="filter-chip" onclick="filterProducts('low_stock')">
+                        <i class="fas fa-exclamation-circle"></i> Low Stock
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Product Form (Initially Hidden) -->
+            <div id="addProductFormContainer" class="card-3d mb-3" style="display: none; border: 2px dashed rgba(16, 185, 129, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <h3 class="mb-0" style="color: var(--primary);">
+                        <i class="fas fa-plus-circle"></i> Add New Product
+                    </h3>
+                    <button class="btn-3d btn-secondary btn-small" onclick="hideAddProductForm()">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+                <form id="addProductForm" onsubmit="handleAddProduct(event)">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px;">
+                        <div class="form-group">
+                            <label><i class="fas fa-tag"></i> Product Name *</label>
+                            <input type="text" name="name" required placeholder="e.g., Wireless Headphones">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-money-bill-wave"></i> Price (Rs.) *</label>
+                            <input type="number" name="price" required placeholder="15000" min="0" step="0.01">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-boxes"></i> Stock Quantity *</label>
+                            <input type="number" name="stock" required placeholder="100" min="0" value="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-bell"></i> Low Stock Alert</label>
+                            <input type="number" name="low_stock_alert" placeholder="10" min="0" value="5">
+                            <small style="opacity: 0.6;">Alert when stock goes below this</small>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label><i class="fas fa-align-left"></i> Description *</label>
+                            <textarea name="description" required rows="3" placeholder="Brief product description..."></textarea>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label><i class="fas fa-image"></i> Product Image *</label>
+                            <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
+                                <label for="productImage" class="btn-3d btn-primary" style="cursor: pointer; margin: 0;">
+                                    <i class="fas fa-cloud-upload-alt"></i> Choose Image
+                                </label>
+                                <input type="file" id="productImage" accept="image/*" style="display: none;" onchange="previewImage(event)" required>
+                                <span id="fileName" style="opacity: 0.8; font-size: 0.95rem;">No file chosen</span>
+                            </div>
+                            <div id="imagePreview" class="hidden" style="margin-top: 20px;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; margin-top: 30px;">
+                        <button type="button" class="btn-3d btn-secondary" onclick="hideAddProductForm()" style="flex: 1;">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn-3d btn-primary" style="flex: 2;">
+                            <i class="fas fa-save"></i> Add Product
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Products List -->
+            <div class="card-3d">
+                <div id="productsTableContainer" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading products...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Section -->
+        <div id="orders" class="admin-section">
+            <h2 class="mb-3" style="color: var(--primary);">
+                <i class="fas fa-shopping-cart"></i> Order Management
+            </h2>
+            
+            <!-- Order Filters -->
+            <div class="card-3d mb-3">
+                <div class="search-box">
+                    <input type="text" id="orderSearch" placeholder="🔍 Search by customer, phone, or tracking ID..." 
+                           onkeyup="searchOrders()">
+                    <i class="fas fa-search"></i>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                    <button class="btn-3d btn-secondary filter-btn active" onclick="filterOrders('all', event)">
+                        <i class="fas fa-list"></i> All Orders
+                    </button>
+                    <button class="btn-3d btn-warning filter-btn" onclick="filterOrders('Pending', event)">
+                        <i class="fas fa-clock"></i> Pending
+                    </button>
+                    <button class="btn-3d btn-success filter-btn" onclick="filterOrders('Confirmed', event)">
+                        <i class="fas fa-check-circle"></i> Confirmed
+                    </button>
+                    <button class="btn-3d btn-danger filter-btn" onclick="filterOrders('Cancelled', event)">
+                        <i class="fas fa-times-circle"></i> Cancelled
+                    </button>
+                    <button class="btn-3d btn-primary filter-btn" onclick="filterOrders('today', event)">
+                        <i class="fas fa-calendar-day"></i> Today
+                    </button>
+                    <button class="btn-3d btn-secondary filter-btn" onclick="filterOrders('this_week', event)">
+                        <i class="fas fa-calendar-week"></i> This Week
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Bulk Actions -->
+            <div class="bulk-action-container">
+                <div class="bulk-select-all" onclick="toggleSelectAll()">
+                    <input type="checkbox" id="selectAllCheckbox">
+                    <span>Select All</span>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 15px; flex: 1; flex-wrap: wrap;">
+                    <select id="bulkAction" class="form-control" style="flex: 1; min-width: 200px;">
+                        <option value="">⚡ Bulk Action</option>
+                        <option value="confirm">✅ Confirm Selected Orders</option>
+                        <option value="cancel">❌ Cancel Selected Orders</option>
+                    </select>
+                    <button class="btn-3d btn-primary" onclick="applyBulkAction()" style="min-width: 120px;">
+                        <i class="fas fa-play"></i> Apply
+                    </button>
+                    <span id="selectedCount" style="opacity: 0.8; margin-left: 10px; font-weight: 500;">
+                        <i class="fas fa-check-square"></i> 0 orders selected
+                    </span>
+                    <button class="btn-3d btn-secondary btn-small" onclick="clearSelection()" style="margin-left: auto;">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Quick Confirm Button (for mobile) -->
+            <button class="quick-confirm-btn" onclick="quickConfirmAll()" title="Confirm All Selected" id="quickConfirmBtn">
+                <i class="fas fa-check"></i>
+            </button>
+            
+            <div class="card-3d">
+                <div id="ordersTableContainer" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading orders...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customers Section -->
+        <div id="customers" class="admin-section">
+            <h2 class="mb-3" style="color: var(--primary);">
+                <i class="fas fa-users"></i> Customer Management
+            </h2>
+            
+            <!-- Customer Search -->
+            <div class="card-3d mb-3">
+                <div class="search-box">
+                    <input type="text" id="customerSearch" placeholder="🔍 Search customers by name or phone number..." 
+                           onkeyup="searchCustomers()">
+                    <i class="fas fa-search"></i>
+                </div>
+            </div>
+            
+            <div class="card-3d">
+                <div id="customersTableContainer" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading customers...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 4rem; color: var(--danger); margin-bottom: 10px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 style="margin-bottom: 10px; color: var(--danger);">Confirm Delete</h3>
+                <p style="opacity: 0.8; margin-bottom: 5px;">This action cannot be undone</p>
+            </div>
+            <p id="deleteMessage" style="margin-bottom: 30px; text-align: center; font-size: 1.1rem;"></p>
+            <div style="display: flex; gap: 15px;">
+                <button class="btn-3d btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn-3d btn-danger" onclick="confirmDelete()" style="flex: 1;">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div class="modal-overlay" id="editProductModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeEditProductModal()">&times;</span>
+            <div id="editProductModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div class="modal-overlay" id="orderDetailsModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeOrderDetailsModal()">&times;</span>
+            <div id="orderDetailsModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Customer Details Modal -->
+    <div class="modal-overlay" id="customerDetailsModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeCustomerDetailsModal()">&times;</span>
+            <div id="customerDetailsModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Notification History Panel -->
+    <div class="notification-history-panel" id="notificationHistoryPanel">
+        <div class="notification-panel-header">
+            <div class="notification-panel-title">
+                <i class="fas fa-bell"></i>
+                Notifications
+            </div>
+            <div class="notification-panel-actions">
+                <button class="mark-all-read-btn" onclick="markAllNotificationsRead()" title="Mark all as read">
+                    <i class="fas fa-check-double"></i> Mark all read
+                </button>
+                <button class="close-panel-btn" onclick="toggleNotificationPanel()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="notification-panel-body" id="notificationPanelBody">
+            <div class="notification-panel-empty">
+                <i class="fas fa-bell-slash"></i>
+                <p>No notifications yet</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast"></div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="background.js"></script>
+    <script src="admin.js"></script>
+    
+    <!-- Inline Script for Mobile Menu -->
+    <script>
+        // Mobile Menu Functions
+        function toggleMobileMenu() {
+            const hamburger = document.querySelector('.hamburger-menu');
+            const mobileNav = document.querySelector('.mobile-nav');
+            const overlay = document.querySelector('.mobile-nav-overlay');
+            
+            hamburger.classList.toggle('active');
+            mobileNav.classList.toggle('active');
+            overlay.classList.toggle('active');
+            
+            // Toggle body scroll
+            document.body.style.overflow = hamburger.classList.contains('active') ? 'hidden' : '';
+        }
+        
+        function closeMobileMenu() {
+            const hamburger = document.querySelector('.hamburger-menu');
+            const mobileNav = document.querySelector('.mobile-nav');
+            const overlay = document.querySelector('.mobile-nav-overlay');
+            
+            hamburger.classList.remove('active');
+            mobileNav.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const mobileNav = document.querySelector('.mobile-nav');
+            const hamburger = document.querySelector('.hamburger-menu');
+            
+            if (mobileNav && mobileNav.classList.contains('active') && 
+                !mobileNav.contains(event.target) && 
+                !hamburger.contains(event.target)) {
+                closeMobileMenu();
+            }
+        });
+        
+        // Handle escape key to close mobile menu
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeMobileMenu();
+            }
+        });
+    </script>
+</body>
+</html>
