@@ -892,7 +892,7 @@ function displayOrders(orders) {
                                 title="View Details">
                             <i class="fas fa-eye"></i>
                         </button>
-                        ${order.status === 'Pending' ? `
+                        ${order.status !== 'Confirmed' ? `
                             <button class="order-action-btn confirm-btn" 
                                     onclick="updateOrderStatus('${order.tracking_id}', 'Confirmed'); event.stopPropagation()"
                                     title="Confirm Order">
@@ -1387,6 +1387,15 @@ async function loadCustomers() {
     try {
         console.log('👥 Loading customers...');
         
+        // Get banned customers first
+        const { data: bannedCustomers, error: bannedError } = await window.supabaseClient
+            .from('banned_customers')
+            .select('*');
+        
+        if (bannedError) console.error('Could not load banned customers:', bannedError);
+        
+        const bannedPhones = new Set((bannedCustomers || []).map(c => c.phone_number));
+        
         // Get customers from orders
         const { data: orders, error } = await window.supabaseClient
             .from('orders')
@@ -1404,7 +1413,8 @@ async function loadCustomers() {
                     phone: order.phone_number,
                     orderCount: 1,
                     totalSpent: order.total,
-                    lastOrder: order.created_at
+                    lastOrder: order.created_at,
+                    banned: bannedPhones.has(order.phone_number)
                 };
             } else {
                 uniqueCustomers[key].orderCount++;
@@ -1443,10 +1453,13 @@ function displayCustomers(customers) {
     // Sort by last order date (newest first)
     customers.sort((a, b) => new Date(b.lastOrder) - new Date(a.lastOrder));
     
-    const html = customers.map(customer => `
-        <tr>
+    const html = customers.map(customer => {
+        const isBanned = customer.banned || false;
+        return `
+        <tr style="${isBanned ? 'opacity: 0.5; background: rgba(239, 68, 68, 0.1);' : ''}">
             <td>
                 <strong>${customer.name}</strong>
+                ${isBanned ? '<span class="status-badge status-cancelled" style="margin-left: 8px; font-size: 0.75rem;"><i class="fas fa-ban"></i> Banned</span>' : ''}
             </td>
             <td>
                 <a href="tel:${customer.phone}" class="customer-phone-link">
@@ -1463,14 +1476,29 @@ function displayCustomers(customers) {
                 ${new Date(customer.lastOrder).toLocaleDateString()}
             </td>
             <td>
-                <button class="btn-3d btn-primary btn-small" 
-                        onclick="viewCustomerDetails(${JSON.stringify(customer).replace(/'/g, "&#39;")})"
-                        title="View Customer">
-                    <i class="fas fa-eye"></i>
-                </button>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="btn-3d btn-primary btn-small" 
+                            onclick="viewCustomerDetails(${JSON.stringify(customer).replace(/'/g, "&#39;")})"
+                            title="View Customer">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${isBanned ? `
+                        <button class="btn-3d btn-success btn-small" 
+                                onclick="toggleCustomerBan('${customer.phone}', false)"
+                                title="Unban Customer">
+                            <i class="fas fa-check"></i> Unban
+                        </button>
+                    ` : `
+                        <button class="btn-3d btn-danger btn-small" 
+                                onclick="toggleCustomerBan('${customer.phone}', true)"
+                                title="Ban Customer">
+                            <i class="fas fa-ban"></i> Ban
+                        </button>
+                    `}
+                </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
     
     container.innerHTML = `
         <div class="table-responsive">
@@ -1593,6 +1621,55 @@ function viewCustomerDetails(customer) {
 
 function closeCustomerDetailsModal() {
     document.getElementById('customerDetailsModal').classList.remove('open');
+}
+
+// Toggle customer ban status
+async function toggleCustomerBan(phoneNumber, shouldBan) {
+    const action = shouldBan ? 'ban' : 'unban';
+    
+    if (!confirm(`Are you sure you want to ${action} this customer (${phoneNumber})?`)) {
+        return;
+    }
+    
+    try {
+        if (shouldBan) {
+            // Add to banned_customers table
+            const { error } = await window.supabaseClient
+                .from('banned_customers')
+                .insert({
+                    phone_number: phoneNumber,
+                    banned_at: new Date().toISOString()
+                });
+            
+            if (error) {
+                // Check if already banned
+                if (error.code === '23505') { // Unique constraint violation
+                    showToast('Customer is already banned', 'warning');
+                    return;
+                }
+                throw error;
+            }
+            
+            showToast('✅ Customer banned successfully', 'success');
+        } else {
+            // Remove from banned_customers table
+            const { error } = await window.supabaseClient
+                .from('banned_customers')
+                .delete()
+                .eq('phone_number', phoneNumber);
+            
+            if (error) throw error;
+            
+            showToast('✅ Customer unbanned successfully', 'success');
+        }
+        
+        // Reload customers to update UI
+        await loadCustomers();
+        
+    } catch (error) {
+        console.error('❌ Toggle ban error:', error);
+        showToast(`❌ Failed to ${action} customer: ` + error.message, 'error');
+    }
 }
 
 // ==================== DELETE FUNCTIONALITY ====================
