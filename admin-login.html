@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - 3D Store</title>
+    <title>Admin Login - සත්සර මල් පැළ</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,6 +15,58 @@
     
     <!-- Stylesheets -->
     <link rel="stylesheet" href="styles.css">
+    
+    <style>
+        .login-security-alert {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .login-security-alert i {
+            color: var(--primary);
+            margin-right: 8px;
+        }
+        
+        .password-strength {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            display: none;
+        }
+        
+        .strength-weak { color: var(--danger); }
+        .strength-medium { color: var(--warning); }
+        .strength-strong { color: var(--success); }
+        
+        .show-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.5);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        .form-group {
+            position: relative;
+        }
+        
+        .login-footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+    </style>
 </head>
 <body>
     <!-- Particle Background Canvas -->
@@ -24,44 +76,65 @@
     <div class="container" style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
         <div class="card-3d" style="max-width: 450px; width: 100%;">
             <div style="text-align: center; margin-bottom: 30px;">
-                <div style="font-size: 4rem; margin-bottom: 15px;">🔐</div>
-                <h2 style="margin-bottom: 10px;">Admin Access</h2>
-                <p style="opacity: 0.7;">Enter your credentials to continue</p>
+                <div style="font-size: 4rem; margin-bottom: 15px; color: var(--primary);">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h2 style="margin-bottom: 10px; color: var(--primary);">Admin Access</h2>
+                <p style="opacity: 0.7;">සත්සර මල් පැළ - Admin Panel</p>
+                
+                <div class="login-security-alert">
+                    <i class="fas fa-lock"></i>
+                    Database Authentication Required
+                </div>
             </div>
 
             <form id="loginForm" onsubmit="handleLogin(event)">
                 <div class="form-group">
-                    <label>Email</label>
+                    <label><i class="fas fa-envelope"></i> Email</label>
                     <input 
                         type="email" 
                         id="email" 
                         required 
-                        placeholder="admin@3dstore.com"
-                        autocomplete="username">
+                        placeholder="admin@example.com"
+                        autocomplete="username"
+                        value="admin@sathsara.com">
                 </div>
 
                 <div class="form-group">
-                    <label>Password</label>
+                    <label><i class="fas fa-key"></i> Password</label>
                     <input 
                         type="password" 
                         id="password" 
                         required 
-                        placeholder="Enter password"
-                        autocomplete="current-password">
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        oninput="checkPasswordStrength(this.value)">
+                    <button type="button" class="show-password" onclick="togglePasswordVisibility()">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <div id="passwordStrength" class="password-strength">
+                        <i class="fas fa-shield"></i> <span>Password strength: </span>
+                        <span id="strengthText"></span>
+                    </div>
                 </div>
 
-                <button type="submit" class="btn-3d btn-primary" style="width: 100%; margin-top: 10px;">
-                    Login
+                <button type="submit" class="btn-3d btn-primary" style="width: 100%; margin-top: 20px; min-height: 50px;">
+                    <span id="loginText">Login</span>
                 </button>
             </form>
 
             <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
                 <a href="index.html" style="color: var(--primary); font-size: 0.9rem; text-decoration: none;">
-                    ← Back to Store
+                    <i class="fas fa-store"></i> Back to Store
                 </a>
             </div>
+            
+            <div class="login-footer">
+                <p><i class="fas fa-info-circle"></i> Use credentials from database admins table</p>
+                <p style="font-size: 0.8rem; margin-top: 10px;">Default: admin@sathsara.com / Admin123!</p>
+            </div>
 
-            <div id="loginError" class="hidden" style="margin-top: 20px; padding: 12px; background: rgba(239, 71, 111, 0.2); border: 1px solid var(--danger); border-radius: 10px; color: var(--danger); text-align: center; font-size: 0.9rem;">
+            <div id="loginError" class="hidden" style="margin-top: 20px; padding: 15px; background: rgba(239, 71, 111, 0.2); border: 1px solid var(--danger); border-radius: 10px; color: var(--danger); text-align: center; font-size: 0.9rem;">
             </div>
         </div>
     </div>
@@ -73,80 +146,214 @@
     <script src="config.js"></script>
     <script src="background.js"></script>
     <script>
-        // Use the global client from config.js
+        // Database Authentication System
         let supabaseClient;
         
         // Initialize
-        function initialize() {
-            // Wait for global client
+        async function initialize() {
+            console.log('🔐 Initializing database authentication...');
+            
+            // Wait for Supabase client
             const waitForClient = () => {
-                if (window.supabaseClient) {
+                if (window.supabaseClient && window.supabaseClient.from) {
                     supabaseClient = window.supabaseClient;
-                    console.log('✅ Using global Supabase client');
+                    console.log('✅ Supabase client ready');
                     checkExistingSession();
                 } else {
-                    console.log('⏳ Waiting for global Supabase client...');
+                    console.log('⏳ Waiting for Supabase client...');
                     setTimeout(waitForClient, 200);
                 }
             };
             
             waitForClient();
+            
+            // Check for logout parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('logout')) {
+                localStorage.removeItem('adminSession');
+                sessionStorage.removeItem('adminAuthenticated');
+                showToast('Logged out successfully', 'success');
+            }
         }
 
         // Check if already logged in
         async function checkExistingSession() {
             try {
-                if (!supabaseClient) return;
-                
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session) {
-                    console.log('✅ Already logged in, redirecting...');
-                    window.location.href = 'admin.html';
+                const sessionData = localStorage.getItem('adminSession');
+                if (sessionData) {
+                    const session = JSON.parse(sessionData);
+                    
+                    // Check if session is valid and not expired
+                    if (Date.now() < session.expiresAt) {
+                        // Verify with database
+                        const { data, error } = await supabaseClient
+                            .from('admins')
+                            .select('email')
+                            .eq('email', session.email)
+                            .eq('is_active', true)
+                            .single();
+                            
+                        if (!error && data) {
+                            console.log('✅ Valid session found, redirecting...');
+                            window.location.href = 'admin.html';
+                            return;
+                        }
+                    }
+                    
+                    // Clear expired or invalid session
+                    localStorage.removeItem('adminSession');
                 }
             } catch (error) {
                 console.error('Error checking session:', error);
             }
         }
 
-        // Initialize when page loads
-        window.addEventListener('DOMContentLoaded', initialize);
+        // Password hashing function
+        async function hashPassword(password) {
+            try {
+                const encoder = new TextEncoder();
+                const salt = 'sathsara_admin_salt_2024';
+                const data = encoder.encode(password + salt);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (error) {
+                console.error('Password hashing error:', error);
+                throw new Error('Password processing failed');
+            }
+        }
+
+        // Check password strength
+        function checkPasswordStrength(password) {
+            const strengthDiv = document.getElementById('passwordStrength');
+            const strengthText = document.getElementById('strengthText');
+            
+            if (!password) {
+                strengthDiv.style.display = 'none';
+                return;
+            }
+            
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            strengthDiv.style.display = 'block';
+            
+            if (strength < 2) {
+                strengthDiv.className = 'password-strength strength-weak';
+                strengthText.textContent = 'Weak';
+            } else if (strength < 4) {
+                strengthDiv.className = 'password-strength strength-medium';
+                strengthText.textContent = 'Medium';
+            } else {
+                strengthDiv.className = 'password-strength strength-strong';
+                strengthText.textContent = 'Strong';
+            }
+        }
+
+        // Toggle password visibility
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.querySelector('.show-password i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.className = 'fas fa-eye';
+            }
+        }
 
         // Handle Login
         async function handleLogin(event) {
             event.preventDefault();
             
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('loginError');
             const submitBtn = event.target.querySelector('button[type="submit"]');
+            const loginText = document.getElementById('loginText');
+            
+            // Basic validation
+            if (!email || !password) {
+                errorDiv.textContent = 'Please enter both email and password';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
             
             // Disable button and show loading
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Logging in...';
+            loginText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
             errorDiv.classList.add('hidden');
 
             try {
-                if (!supabaseClient || !supabaseClient.auth) {
-                    throw new Error('System not ready. Please refresh the page.');
+                if (!supabaseClient || !supabaseClient.from) {
+                    throw new Error('Database connection not ready');
                 }
 
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
+                // Hash the password
+                const passwordHash = await hashPassword(password);
+                
+                console.log('🔐 Attempting database login for:', email);
+                
+                // Query database for admin
+                const { data: admin, error } = await supabaseClient
+                    .from('admins')
+                    .select('id, email, full_name, role, last_login')
+                    .eq('email', email)
+                    .eq('password_hash', passwordHash)
+                    .eq('is_active', true)
+                    .single();
 
-                if (error) {
-                    if (error.message.includes('Invalid login credentials')) {
-                        throw new Error('Invalid email or password');
-                    } else if (error.message.includes('Email not confirmed')) {
-                        throw new Error('Please confirm your email first');
-                    }
-                    throw error;
+                if (error || !admin) {
+                    console.error('Login failed:', error);
+                    throw new Error('Invalid email or password');
+                }
+                
+                console.log('✅ Login successful for:', admin.email);
+                
+                // Update last login time
+                await supabaseClient
+                    .from('admins')
+                    .update({ 
+                        last_login: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', admin.id);
+                
+                // Create session
+                const session = {
+                    id: admin.id,
+                    email: admin.email,
+                    name: admin.full_name,
+                    role: admin.role,
+                    loggedInAt: Date.now(),
+                    expiresAt: Date.now() + (2 * 60 * 60 * 1000) // 2 hours
+                };
+                
+                // Store session
+                localStorage.setItem('adminSession', JSON.stringify(session));
+                sessionStorage.setItem('adminAuthenticated', 'true');
+                
+                // Log login action
+                try {
+                    await supabaseClient
+                        .from('admin_logs')
+                        .insert({
+                            admin_email: admin.email,
+                            action: 'login',
+                            timestamp: new Date().toISOString(),
+                            details: { ip: 'web_client' }
+                        });
+                } catch (logError) {
+                    console.log('Login log not saved:', logError);
                 }
 
                 // Login successful
-                console.log('✅ Login successful');
-                showToast('Login successful! Redirecting...', 'success');
+                showToast('✅ Login successful! Redirecting...', 'success');
                 
                 setTimeout(() => {
                     window.location.href = 'admin.html';
@@ -154,24 +361,76 @@
 
             } catch (error) {
                 console.error('❌ Login error:', error);
-                errorDiv.textContent = error.message || 'Login failed. Please try again.';
+                
+                let errorMessage = 'Login failed. Please try again.';
+                
+                if (error.message.includes('Invalid')) {
+                    errorMessage = 'Invalid email or password';
+                } else if (error.message.includes('single')) {
+                    errorMessage = 'Account not found or inactive';
+                } else if (error.message.includes('database')) {
+                    errorMessage = 'Database connection error. Please try again.';
+                } else if (error.message.includes('Network')) {
+                    errorMessage = 'Network error. Check your connection.';
+                }
+                
+                errorDiv.textContent = errorMessage;
                 errorDiv.classList.remove('hidden');
                 
                 // Re-enable button
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Login';
+                loginText.textContent = 'Login';
+                
+                // Show error toast
+                showToast('❌ ' + errorMessage, 'error');
             }
         }
 
         // Toast Notification
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
+            if (!toast) return;
+            
             toast.textContent = message;
-            toast.className = type === 'success' ? 'show success' : (type === 'error' ? 'show error' : 'show');
+            toast.className = 'show';
+            
+            if (type === 'success') {
+                toast.style.background = 'rgba(16, 185, 129, 0.2)';
+                toast.style.borderColor = '#10b981';
+            } else if (type === 'error') {
+                toast.style.background = 'rgba(239, 68, 68, 0.2)';
+                toast.style.borderColor = '#ef4444';
+            } else if (type === 'warning') {
+                toast.style.background = 'rgba(245, 158, 11, 0.2)';
+                toast.style.borderColor = '#f59e0b';
+            }
+            
             setTimeout(() => {
                 toast.className = '';
             }, 3000);
         }
+
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', initialize);
+        
+        // Handle Enter key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.target.closest('button')) {
+                const submitBtn = document.querySelector('button[type="submit"]');
+                if (submitBtn && !submitBtn.disabled) {
+                    event.preventDefault();
+                    submitBtn.click();
+                }
+            }
+        });
+        
+        // Auto-focus email field
+        window.addEventListener('load', function() {
+            const emailField = document.getElementById('email');
+            if (emailField) {
+                emailField.focus();
+            }
+        });
     </script>
 </body>
 </html>
