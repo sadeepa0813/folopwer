@@ -88,7 +88,8 @@ async function loadInitialData() {
             loadDashboardStats(),
             loadProducts(),
             loadOrders(),
-            loadCustomers()
+            loadCustomers(),
+            loadNotificationHistory()
         ]);
         
         // Setup real-time
@@ -1977,6 +1978,8 @@ function setupRealtime() {
 }
 
 // ==================== NOTIFICATION FUNCTIONS ====================
+let allNotifications = [];
+
 function showOrderNotification(order) {
     // Create notification element
     const notification = document.createElement('div');
@@ -2040,6 +2043,9 @@ function showOrderNotification(order) {
         }
     }, 10000);
     
+    // Update notification history
+    loadNotificationHistory();
+    
     // Show browser notification if permission granted
     if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('New Order Received! 🛒', {
@@ -2050,6 +2056,184 @@ function showOrderNotification(order) {
             requireInteraction: false
         });
     }
+}
+
+// Toggle notification history panel
+function toggleNotificationPanel() {
+    const panel = document.getElementById('notificationHistoryPanel');
+    const isOpen = panel.classList.contains('open');
+    
+    if (isOpen) {
+        panel.classList.remove('open');
+    } else {
+        panel.classList.add('open');
+        loadNotificationHistory();
+    }
+}
+
+// Load notification history
+async function loadNotificationHistory() {
+    try {
+        const { data: notifications, error } = await window.supabaseClient
+            .from('notification_history')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(50);
+        
+        if (error) throw error;
+        
+        allNotifications = notifications || [];
+        displayNotificationHistory(allNotifications);
+        updateNotificationBadge();
+        
+    } catch (error) {
+        console.error('Failed to load notifications:', error);
+    }
+}
+
+// Display notification history
+function displayNotificationHistory(notifications) {
+    const container = document.getElementById('notificationPanelBody');
+    
+    if (!notifications || notifications.length === 0) {
+        container.innerHTML = `
+            <div class="notification-panel-empty">
+                <i class="fas fa-bell-slash"></i>
+                <p>No notifications yet</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const html = notifications.map(notif => {
+        const timeAgo = getTimeAgo(notif.created_at);
+        const unreadClass = !notif.is_read ? 'unread' : '';
+        
+        return `
+            <div class="notification-history-item ${unreadClass}" onclick="viewNotificationOrder('${notif.tracking_id}', ${notif.id})">
+                <div class="notification-item-header">
+                    <div class="notification-item-customer">
+                        <i class="fas fa-user-circle"></i> ${notif.customer_name}
+                    </div>
+                    <div class="notification-item-time">${timeAgo}</div>
+                </div>
+                <div class="notification-item-details">
+                    <i class="fas fa-box"></i> ${notif.product_name} × ${notif.quantity}
+                </div>
+                <div class="notification-item-footer">
+                    <div class="notification-item-tracking">
+                        #${notif.tracking_id}
+                    </div>
+                    <div class="notification-item-total">
+                        Rs. ${Number(notif.total).toLocaleString()}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = html;
+}
+
+// Update notification badge count
+function updateNotificationBadge() {
+    const unreadCount = allNotifications.filter(n => !n.is_read).length;
+    const badge = document.getElementById('notificationBadge');
+    
+    if (badge) {
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+// View order from notification
+function viewNotificationOrder(trackingId, notificationId) {
+    // Mark as read
+    markNotificationAsRead(notificationId);
+    
+    // Close panel
+    toggleNotificationPanel();
+    
+    // Show order
+    viewOrderFromNotification(trackingId);
+}
+
+// Mark notification as read
+async function markNotificationAsRead(notificationId) {
+    try {
+        const { error } = await window.supabaseClient
+            .from('notification_history')
+            .update({ 
+                is_read: true,
+                read_at: new Date().toISOString()
+            })
+            .eq('id', notificationId);
+        
+        if (error) throw error;
+        
+        // Update local data
+        const index = allNotifications.findIndex(n => n.id === notificationId);
+        if (index !== -1) {
+            allNotifications[index].is_read = true;
+            allNotifications[index].read_at = new Date().toISOString();
+        }
+        
+        updateNotificationBadge();
+        
+    } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+    }
+}
+
+// Mark all notifications as read
+async function markAllNotificationsRead() {
+    try {
+        const { error } = await window.supabaseClient
+            .from('notification_history')
+            .update({ 
+                is_read: true,
+                read_at: new Date().toISOString()
+            })
+            .eq('is_read', false);
+        
+        if (error) throw error;
+        
+        // Update local data
+        allNotifications.forEach(n => {
+            if (!n.is_read) {
+                n.is_read = true;
+                n.read_at = new Date().toISOString();
+            }
+        });
+        
+        displayNotificationHistory(allNotifications);
+        updateNotificationBadge();
+        showToast('All notifications marked as read', 'success');
+        
+    } catch (error) {
+        console.error('Failed to mark all as read:', error);
+        showToast('Failed to update notifications', 'error');
+    }
+}
+
+// Get time ago string
+function getTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
 }
 
 // Play notification sound
