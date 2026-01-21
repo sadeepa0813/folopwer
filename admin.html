@@ -400,6 +400,224 @@
             pointer-events: none;
         }
         
+        /* Notification Bell Badge */
+        .notification-count-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
+            animation: pulse-badge 2s infinite;
+        }
+        
+        @keyframes pulse-badge {
+            0%, 100% {
+                box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
+            }
+            50% {
+                box-shadow: 0 2px 15px rgba(239, 68, 68, 0.8);
+            }
+        }
+        
+        /* Notification History Panel */
+        .notification-history-panel {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            width: 420px;
+            max-height: 600px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+            display: none;
+            flex-direction: column;
+            z-index: 10000;
+            overflow: hidden;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .notification-history-panel.open {
+            display: flex;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .notification-panel-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.05));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .notification-panel-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .notification-panel-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .mark-all-read-btn {
+            padding: 6px 12px;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px;
+            color: var(--primary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .mark-all-read-btn:hover {
+            background: rgba(16, 185, 129, 0.3);
+        }
+        
+        .close-panel-btn {
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .close-panel-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+        
+        .notification-panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            max-height: 500px;
+        }
+        
+        .notification-panel-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .notification-panel-body::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        
+        .notification-panel-body::-webkit-scrollbar-thumb {
+            background: rgba(16, 185, 129, 0.5);
+            border-radius: 10px;
+        }
+        
+        .notification-history-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .notification-history-item:hover {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            transform: translateX(-5px);
+        }
+        
+        .notification-history-item.unread {
+            border-left: 3px solid var(--primary);
+            background: rgba(16, 185, 129, 0.05);
+        }
+        
+        .notification-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+        
+        .notification-item-customer {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+        
+        .notification-item-time {
+            font-size: 0.75rem;
+            opacity: 0.6;
+        }
+        
+        .notification-item-details {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+        
+        .notification-item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .notification-item-tracking {
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            opacity: 0.7;
+        }
+        
+        .notification-item-total {
+            font-weight: 700;
+            color: var(--success);
+        }
+        
+        .notification-panel-empty {
+            text-align: center;
+            padding: 60px 20px;
+            opacity: 0.5;
+        }
+        
+        .notification-panel-empty i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+        
         .order-notification {
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
             border: 2px solid rgba(16, 185, 129, 0.5);
@@ -1050,6 +1268,13 @@
             <div class="nav-item" onclick="showSection('customers')">
                 <i class="fas fa-users"></i> <span class="nav-text">Customers</span>
             </div>
+            
+            <!-- Notification Bell Icon -->
+            <div class="nav-item notification-bell" onclick="toggleNotificationPanel()" style="position: relative;">
+                <i class="fas fa-bell"></i>
+                <span id="notificationBadge" class="notification-count-badge" style="display: none;">0</span>
+            </div>
+            
             <button class="btn-3d btn-danger btn-small" onclick="handleLogout()">
                 <i class="fas fa-sign-out-alt"></i> <span class="logout-text">Logout</span>
             </button>
@@ -1450,6 +1675,30 @@
         <div class="modal-content">
             <span class="close-modal" onclick="closeCustomerDetailsModal()">&times;</span>
             <div id="customerDetailsModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Notification History Panel -->
+    <div class="notification-history-panel" id="notificationHistoryPanel">
+        <div class="notification-panel-header">
+            <div class="notification-panel-title">
+                <i class="fas fa-bell"></i>
+                Notifications
+            </div>
+            <div class="notification-panel-actions">
+                <button class="mark-all-read-btn" onclick="markAllNotificationsRead()" title="Mark all as read">
+                    <i class="fas fa-check-double"></i> Mark all read
+                </button>
+                <button class="close-panel-btn" onclick="toggleNotificationPanel()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="notification-panel-body" id="notificationPanelBody">
+            <div class="notification-panel-empty">
+                <i class="fas fa-bell-slash"></i>
+                <p>No notifications yet</p>
+            </div>
         </div>
     </div>
 
