@@ -94,6 +94,11 @@ async function loadInitialData() {
         // Setup real-time
         setupRealtime();
         
+        // Request notification permission
+        setTimeout(() => {
+            requestNotificationPermission();
+        }, 2000); // Wait 2 seconds before asking
+        
     } catch (error) {
         console.error('Initial data load error:', error);
         showToast('Failed to load data', 'error');
@@ -1946,18 +1951,174 @@ function setupRealtime() {
         )
         .subscribe();
     
-    // Subscribe to orders changes
+    // Subscribe to orders changes with notifications
     window.supabaseClient
         .channel('orders-changes')
         .on('postgres_changes', 
             { event: '*', schema: 'public', table: 'orders' },
-            (payload) => {
+            async (payload) => {
                 console.log('Order change detected:', payload.eventType);
-                loadOrders();
-                loadDashboardStats();
+                
+                // Show notification for new orders
+                if (payload.eventType === 'INSERT') {
+                    const newOrder = payload.new;
+                    showOrderNotification(newOrder);
+                    playNotificationSound();
+                }
+                
+                // Reload data
+                await loadOrders();
+                await loadDashboardStats();
             }
         )
         .subscribe();
+    
+    console.log('✅ Real-time subscriptions active');
+}
+
+// ==================== NOTIFICATION FUNCTIONS ====================
+function showOrderNotification(order) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'order-notification';
+    notification.innerHTML = `
+        <div class="notification-header">
+            <div class="notification-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div class="notification-title">
+                🎉 New Order Received!
+            </div>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notification-body">
+            <div class="notification-detail">
+                <i class="fas fa-user"></i>
+                <strong>${order.customer_name}</strong>
+            </div>
+            <div class="notification-detail">
+                <i class="fas fa-box"></i>
+                ${order.product_name} × ${order.quantity}
+            </div>
+            <div class="notification-detail">
+                <i class="fas fa-money-bill-wave"></i>
+                Rs. ${order.total.toLocaleString()}
+            </div>
+            <div class="notification-detail">
+                <i class="fas fa-barcode"></i>
+                <span class="mono" style="font-size: 0.85rem;">${order.tracking_id}</span>
+            </div>
+        </div>
+        <div class="notification-actions">
+            <button class="notification-btn view-btn" onclick="viewOrderFromNotification('${order.tracking_id}'); this.closest('.order-notification').remove();">
+                <i class="fas fa-eye"></i> View Order
+            </button>
+            <button class="notification-btn confirm-btn" onclick="confirmOrderFromNotification('${order.tracking_id}'); this.closest('.order-notification').remove();">
+                <i class="fas fa-check"></i> Confirm
+            </button>
+        </div>
+    `;
+    
+    // Add to notification container
+    let container = document.getElementById('notificationContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notificationContainer';
+        container.className = 'notification-container';
+        document.body.appendChild(container);
+    }
+    
+    container.appendChild(notification);
+    
+    // Auto remove after 10 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.classList.add('notification-fade-out');
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 10000);
+    
+    // Show browser notification if permission granted
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('New Order Received! 🛒', {
+            body: `${order.customer_name} ordered ${order.product_name}\nTotal: Rs. ${order.total.toLocaleString()}`,
+            icon: '🛒',
+            badge: '🛒',
+            tag: order.tracking_id,
+            requireInteraction: false
+        });
+    }
+}
+
+// Play notification sound
+function playNotificationSound() {
+    try {
+        // Create audio context
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Create oscillator for beep sound
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Set sound properties
+        oscillator.frequency.value = 800; // Frequency in Hz
+        oscillator.type = 'sine';
+        
+        // Volume envelope
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        // Play sound
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+        console.log('Could not play notification sound:', error);
+    }
+}
+
+// View order from notification
+function viewOrderFromNotification(trackingId) {
+    showSection('orders');
+    setTimeout(() => {
+        const order = allOrders.find(o => o.tracking_id === trackingId);
+        if (order) {
+            viewOrderDetails(order);
+        }
+    }, 300);
+}
+
+// Confirm order from notification
+async function confirmOrderFromNotification(trackingId) {
+    try {
+        await updateOrderStatus(trackingId, 'Confirmed');
+        showToast('✅ Order confirmed!', 'success');
+    } catch (error) {
+        console.error('Failed to confirm order:', error);
+        showToast('❌ Failed to confirm order', 'error');
+    }
+}
+
+// Request notification permission on load
+async function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                console.log('✅ Notification permission granted');
+                showToast('Notifications enabled! You will be notified of new orders.', 'success');
+            } else {
+                console.log('❌ Notification permission denied');
+            }
+        } catch (error) {
+            console.error('Notification permission error:', error);
+        }
+    }
 }
 
 // ==================== MOBILE MENU FUNCTIONS ====================
