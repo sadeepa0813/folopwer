@@ -1,8 +1,7 @@
 /**
- * ════════════════════════════════════════════════════════════════
- * 3D STORE - COMPLETE ADMIN PANEL (FIXED VERSION)
- * Working version with all bugs fixed
- * ════════════════════════════════════════════════════════════════
+ * සත්සර මල් පැළ - COMPLETE ADMIN PANEL
+ * Version: 4.0.0 (Database Authentication)
+ * Date: 2024
  */
 
 // Global state
@@ -13,10 +12,18 @@ let allOrders = [];
 let allProducts = [];
 let allCustomers = [];
 let selectedOrders = new Set();
+let currentAdmin = null;
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 Admin Panel Loading...');
+    
+    // Get admin session
+    const sessionData = localStorage.getItem('adminSession');
+    if (sessionData) {
+        currentAdmin = JSON.parse(sessionData);
+        document.getElementById('adminEmail').textContent = currentAdmin.email;
+    }
     
     // Setup mobile menu event listeners
     setupMobileMenu();
@@ -37,16 +44,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function waitForSupabase() {
     return new Promise((resolve) => {
         const checkClient = () => {
-            if (window.supabaseClient) {
+            if (window.supabaseClient && window.supabaseClient.from) {
                 console.log('✅ Supabase client found');
                 resolve(true);
                 return;
             }
-            
-            console.log('⏳ Waiting for Supabase client...');
             setTimeout(checkClient, 500);
         };
-        
         checkClient();
     });
 }
@@ -54,24 +58,40 @@ async function waitForSupabase() {
 // Check authentication
 async function checkAuth() {
     try {
-        const { data: { session }, error } = await window.supabaseClient.auth.getSession();
-        
-        if (error) {
-            console.error('Auth error:', error);
+        const sessionData = localStorage.getItem('adminSession');
+        if (!sessionData) {
             redirectToLogin();
             return false;
         }
         
-        if (!session) {
-            console.log('❌ No active session');
-            redirectToLogin();
+        const session = JSON.parse(sessionData);
+        
+        // Check session expiry
+        if (Date.now() > session.expiresAt) {
+            showToast('Session expired. Please login again.', 'warning');
+            logout();
             return false;
         }
         
-        console.log('✅ Authenticated as:', session.user.email);
-        document.getElementById('adminEmail').textContent = session.user.email;
-        document.getElementById('lastLogin').textContent = 'Last login: ' + new Date().toLocaleString();
+        // Verify with database
+        const { data, error } = await window.supabaseClient
+            .from('admins')
+            .select('email, full_name, last_login')
+            .eq('email', session.email)
+            .eq('is_active', true)
+            .single();
+            
+        if (error || !data) {
+            showToast('Invalid session. Please login again.', 'error');
+            logout();
+            return false;
+        }
         
+        // Update UI
+        document.getElementById('adminEmail').textContent = session.email;
+        document.getElementById('lastLogin').textContent = 'Last login: ' + 
+            (data.last_login ? new Date(data.last_login).toLocaleString() : 'Just now');
+            
         return true;
         
     } catch (error) {
@@ -88,17 +108,11 @@ async function loadInitialData() {
             loadDashboardStats(),
             loadProducts(),
             loadOrders(),
-            loadCustomers(),
-            loadNotificationHistory()
+            loadCustomers()
         ]);
         
         // Setup real-time
         setupRealtime();
-        
-        // Request notification permission
-        setTimeout(() => {
-            requestNotificationPermission();
-        }, 2000); // Wait 2 seconds before asking
         
     } catch (error) {
         console.error('Initial data load error:', error);
@@ -110,6 +124,50 @@ function redirectToLogin() {
     setTimeout(() => {
         window.location.href = 'admin-login.html';
     }, 1500);
+}
+
+// ==================== LOGOUT FUNCTION ====================
+async function handleLogout() {
+    if (!confirm('Are you sure you want to logout?')) return;
+    
+    try {
+        // Log logout action
+        if (currentAdmin) {
+            try {
+                await window.supabaseClient
+                    .from('admin_logs')
+                    .insert({
+                        admin_email: currentAdmin.email,
+                        action: 'logout',
+                        timestamp: new Date().toISOString(),
+                        details: { ip: 'web_client' }
+                    });
+            } catch (logError) {
+                console.log('Could not log logout action:', logError);
+            }
+        }
+        
+        logout();
+        
+    } catch (error) {
+        console.error('Logout error:', error);
+        logout();
+    }
+}
+
+function logout() {
+    // Clear all session data
+    localStorage.removeItem('adminSession');
+    sessionStorage.removeItem('adminAuthenticated');
+    
+    // Clear cookies
+    document.cookie.split(";").forEach(function(c) {
+        document.cookie = c.replace(/^ +/, "")
+            .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+    
+    // Redirect to login with cache busting
+    window.location.href = 'admin-login.html?logout=true';
 }
 
 // ==================== NAVIGATION ====================
@@ -1786,18 +1844,6 @@ function showToast(message, type = 'info') {
     }, 4000);
 }
 
-async function handleLogout() {
-    if (!confirm('Are you sure you want to logout?')) return;
-    
-    try {
-        await window.supabaseClient.auth.signOut();
-        window.location.href = 'admin-login.html';
-    } catch (error) {
-        console.error('Logout error:', error);
-        showToast('Failed to logout', 'error');
-    }
-}
-
 // ==================== FILTER PRODUCTS ====================
 function filterProducts(filter) {
     let filtered = allProducts;
@@ -1952,20 +1998,13 @@ function setupRealtime() {
         )
         .subscribe();
     
-    // Subscribe to orders changes with notifications
+    // Subscribe to orders changes
     window.supabaseClient
         .channel('orders-changes')
         .on('postgres_changes', 
             { event: '*', schema: 'public', table: 'orders' },
             async (payload) => {
                 console.log('Order change detected:', payload.eventType);
-                
-                // Show notification for new orders
-                if (payload.eventType === 'INSERT') {
-                    const newOrder = payload.new;
-                    showOrderNotification(newOrder);
-                    playNotificationSound();
-                }
                 
                 // Reload data
                 await loadOrders();
@@ -1975,334 +2014,6 @@ function setupRealtime() {
         .subscribe();
     
     console.log('✅ Real-time subscriptions active');
-}
-
-// ==================== NOTIFICATION FUNCTIONS ====================
-let allNotifications = [];
-
-function showOrderNotification(order) {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = 'order-notification';
-    notification.innerHTML = `
-        <div class="notification-header">
-            <div class="notification-icon">
-                <i class="fas fa-shopping-cart"></i>
-            </div>
-            <div class="notification-title">
-                🎉 New Order Received!
-            </div>
-            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="notification-body">
-            <div class="notification-detail">
-                <i class="fas fa-user"></i>
-                <strong>${order.customer_name}</strong>
-            </div>
-            <div class="notification-detail">
-                <i class="fas fa-box"></i>
-                ${order.product_name} × ${order.quantity}
-            </div>
-            <div class="notification-detail">
-                <i class="fas fa-money-bill-wave"></i>
-                Rs. ${order.total.toLocaleString()}
-            </div>
-            <div class="notification-detail">
-                <i class="fas fa-barcode"></i>
-                <span class="mono" style="font-size: 0.85rem;">${order.tracking_id}</span>
-            </div>
-        </div>
-        <div class="notification-actions">
-            <button class="notification-btn view-btn" onclick="viewOrderFromNotification('${order.tracking_id}'); this.closest('.order-notification').remove();">
-                <i class="fas fa-eye"></i> View Order
-            </button>
-            <button class="notification-btn confirm-btn" onclick="confirmOrderFromNotification('${order.tracking_id}'); this.closest('.order-notification').remove();">
-                <i class="fas fa-check"></i> Confirm
-            </button>
-        </div>
-    `;
-    
-    // Add to notification container
-    let container = document.getElementById('notificationContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'notificationContainer';
-        container.className = 'notification-container';
-        document.body.appendChild(container);
-    }
-    
-    container.appendChild(notification);
-    
-    // Auto remove after 10 seconds
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.classList.add('notification-fade-out');
-            setTimeout(() => notification.remove(), 300);
-        }
-    }, 10000);
-    
-    // Update notification history
-    loadNotificationHistory();
-    
-    // Show browser notification if permission granted
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('New Order Received! 🛒', {
-            body: `${order.customer_name} ordered ${order.product_name}\nTotal: Rs. ${order.total.toLocaleString()}`,
-            icon: '🛒',
-            badge: '🛒',
-            tag: order.tracking_id,
-            requireInteraction: false
-        });
-    }
-}
-
-// Toggle notification history panel
-function toggleNotificationPanel() {
-    const panel = document.getElementById('notificationHistoryPanel');
-    const isOpen = panel.classList.contains('open');
-    
-    if (isOpen) {
-        panel.classList.remove('open');
-    } else {
-        panel.classList.add('open');
-        loadNotificationHistory();
-    }
-}
-
-// Load notification history
-async function loadNotificationHistory() {
-    try {
-        const { data: notifications, error } = await window.supabaseClient
-            .from('notification_history')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50);
-        
-        if (error) throw error;
-        
-        allNotifications = notifications || [];
-        displayNotificationHistory(allNotifications);
-        updateNotificationBadge();
-        
-    } catch (error) {
-        console.error('Failed to load notifications:', error);
-    }
-}
-
-// Display notification history
-function displayNotificationHistory(notifications) {
-    const container = document.getElementById('notificationPanelBody');
-    
-    if (!notifications || notifications.length === 0) {
-        container.innerHTML = `
-            <div class="notification-panel-empty">
-                <i class="fas fa-bell-slash"></i>
-                <p>No notifications yet</p>
-            </div>
-        `;
-        return;
-    }
-    
-    const html = notifications.map(notif => {
-        const timeAgo = getTimeAgo(notif.created_at);
-        const unreadClass = !notif.is_read ? 'unread' : '';
-        
-        return `
-            <div class="notification-history-item ${unreadClass}" onclick="viewNotificationOrder('${notif.tracking_id}', ${notif.id})">
-                <div class="notification-item-header">
-                    <div class="notification-item-customer">
-                        <i class="fas fa-user-circle"></i> ${notif.customer_name}
-                    </div>
-                    <div class="notification-item-time">${timeAgo}</div>
-                </div>
-                <div class="notification-item-details">
-                    <i class="fas fa-box"></i> ${notif.product_name} × ${notif.quantity}
-                </div>
-                <div class="notification-item-footer">
-                    <div class="notification-item-tracking">
-                        #${notif.tracking_id}
-                    </div>
-                    <div class="notification-item-total">
-                        Rs. ${Number(notif.total).toLocaleString()}
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    container.innerHTML = html;
-}
-
-// Update notification badge count
-function updateNotificationBadge() {
-    const unreadCount = allNotifications.filter(n => !n.is_read).length;
-    const badge = document.getElementById('notificationBadge');
-    
-    if (badge) {
-        if (unreadCount > 0) {
-            badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-            badge.style.display = 'flex';
-        } else {
-            badge.style.display = 'none';
-        }
-    }
-}
-
-// View order from notification
-function viewNotificationOrder(trackingId, notificationId) {
-    // Mark as read
-    markNotificationAsRead(notificationId);
-    
-    // Close panel
-    toggleNotificationPanel();
-    
-    // Show order
-    viewOrderFromNotification(trackingId);
-}
-
-// Mark notification as read
-async function markNotificationAsRead(notificationId) {
-    try {
-        const { error } = await window.supabaseClient
-            .from('notification_history')
-            .update({ 
-                is_read: true,
-                read_at: new Date().toISOString()
-            })
-            .eq('id', notificationId);
-        
-        if (error) throw error;
-        
-        // Update local data
-        const index = allNotifications.findIndex(n => n.id === notificationId);
-        if (index !== -1) {
-            allNotifications[index].is_read = true;
-            allNotifications[index].read_at = new Date().toISOString();
-        }
-        
-        updateNotificationBadge();
-        
-    } catch (error) {
-        console.error('Failed to mark notification as read:', error);
-    }
-}
-
-// Mark all notifications as read
-async function markAllNotificationsRead() {
-    try {
-        const { error } = await window.supabaseClient
-            .from('notification_history')
-            .update({ 
-                is_read: true,
-                read_at: new Date().toISOString()
-            })
-            .eq('is_read', false);
-        
-        if (error) throw error;
-        
-        // Update local data
-        allNotifications.forEach(n => {
-            if (!n.is_read) {
-                n.is_read = true;
-                n.read_at = new Date().toISOString();
-            }
-        });
-        
-        displayNotificationHistory(allNotifications);
-        updateNotificationBadge();
-        showToast('All notifications marked as read', 'success');
-        
-    } catch (error) {
-        console.error('Failed to mark all as read:', error);
-        showToast('Failed to update notifications', 'error');
-    }
-}
-
-// Get time ago string
-function getTimeAgo(dateString) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now - date) / 1000);
-    
-    if (seconds < 60) return 'Just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
-}
-
-// Play notification sound
-function playNotificationSound() {
-    try {
-        // Create audio context
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // Create oscillator for beep sound
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        // Set sound properties
-        oscillator.frequency.value = 800; // Frequency in Hz
-        oscillator.type = 'sine';
-        
-        // Volume envelope
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-        
-        // Play sound
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.5);
-    } catch (error) {
-        console.log('Could not play notification sound:', error);
-    }
-}
-
-// View order from notification
-function viewOrderFromNotification(trackingId) {
-    showSection('orders');
-    setTimeout(() => {
-        const order = allOrders.find(o => o.tracking_id === trackingId);
-        if (order) {
-            viewOrderDetails(order);
-        }
-    }, 300);
-}
-
-// Confirm order from notification
-async function confirmOrderFromNotification(trackingId) {
-    try {
-        await updateOrderStatus(trackingId, 'Confirmed');
-        showToast('✅ Order confirmed!', 'success');
-    } catch (error) {
-        console.error('Failed to confirm order:', error);
-        showToast('❌ Failed to confirm order', 'error');
-    }
-}
-
-// Request notification permission on load
-async function requestNotificationPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
-        try {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                console.log('✅ Notification permission granted');
-                showToast('Notifications enabled! You will be notified of new orders.', 'success');
-            } else {
-                console.log('❌ Notification permission denied');
-            }
-        } catch (error) {
-            console.error('Notification permission error:', error);
-        }
-    }
 }
 
 // ==================== MOBILE MENU FUNCTIONS ====================
