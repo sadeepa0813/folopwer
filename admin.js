@@ -1,7 +1,6 @@
 /**
  * සත්සර මල් පැළ - COMPLETE ADMIN PANEL
- * Version: 4.0.0 (Database Authentication)
- * Date: 2024
+ * Version: 4.0.0 (Supabase Authentication)
  */
 
 // Global state
@@ -17,13 +16,6 @@ let currentAdmin = null;
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 Admin Panel Loading...');
-    
-    // Get admin session
-    const sessionData = localStorage.getItem('adminSession');
-    if (sessionData) {
-        currentAdmin = JSON.parse(sessionData);
-        document.getElementById('adminEmail').textContent = currentAdmin.email;
-    }
     
     // Setup mobile menu event listeners
     setupMobileMenu();
@@ -44,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function waitForSupabase() {
     return new Promise((resolve) => {
         const checkClient = () => {
-            if (window.supabaseClient && window.supabaseClient.from) {
+            if (window.supabaseClient && window.supabaseClient.auth) {
                 console.log('✅ Supabase client found');
                 resolve(true);
                 return;
@@ -58,40 +50,27 @@ async function waitForSupabase() {
 // Check authentication
 async function checkAuth() {
     try {
-        const sessionData = localStorage.getItem('adminSession');
-        if (!sessionData) {
+        // Check with Supabase Auth
+        const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+        
+        if (error || !session) {
+            console.log('❌ No active session');
             redirectToLogin();
             return false;
         }
         
-        const session = JSON.parse(sessionData);
+        console.log('✅ Authenticated as:', session.user.email);
         
-        // Check session expiry
-        if (Date.now() > session.expiresAt) {
-            showToast('Session expired. Please login again.', 'warning');
-            logout();
-            return false;
-        }
-        
-        // Verify with database
-        const { data, error } = await window.supabaseClient
-            .from('admins')
-            .select('email, full_name, last_login')
-            .eq('email', session.email)
-            .eq('is_active', true)
-            .single();
-            
-        if (error || !data) {
-            showToast('Invalid session. Please login again.', 'error');
-            logout();
-            return false;
-        }
+        // Store admin info
+        currentAdmin = {
+            id: session.user.id,
+            email: session.user.email
+        };
         
         // Update UI
-        document.getElementById('adminEmail').textContent = session.email;
-        document.getElementById('lastLogin').textContent = 'Last login: ' + 
-            (data.last_login ? new Date(data.last_login).toLocaleString() : 'Just now');
-            
+        document.getElementById('adminEmail').textContent = session.user.email;
+        document.getElementById('lastLogin').textContent = 'Last login: ' + new Date().toLocaleString();
+        
         return true;
         
     } catch (error) {
@@ -124,50 +103,6 @@ function redirectToLogin() {
     setTimeout(() => {
         window.location.href = 'admin-login.html';
     }, 1500);
-}
-
-// ==================== LOGOUT FUNCTION ====================
-async function handleLogout() {
-    if (!confirm('Are you sure you want to logout?')) return;
-    
-    try {
-        // Log logout action
-        if (currentAdmin) {
-            try {
-                await window.supabaseClient
-                    .from('admin_logs')
-                    .insert({
-                        admin_email: currentAdmin.email,
-                        action: 'logout',
-                        timestamp: new Date().toISOString(),
-                        details: { ip: 'web_client' }
-                    });
-            } catch (logError) {
-                console.log('Could not log logout action:', logError);
-            }
-        }
-        
-        logout();
-        
-    } catch (error) {
-        console.error('Logout error:', error);
-        logout();
-    }
-}
-
-function logout() {
-    // Clear all session data
-    localStorage.removeItem('adminSession');
-    sessionStorage.removeItem('adminAuthenticated');
-    
-    // Clear cookies
-    document.cookie.split(";").forEach(function(c) {
-        document.cookie = c.replace(/^ +/, "")
-            .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
-    
-    // Redirect to login with cache busting
-    window.location.href = 'admin-login.html?logout=true';
 }
 
 // ==================== NAVIGATION ====================
@@ -225,6 +160,26 @@ function showSection(sectionId) {
     
     // Close mobile menu if open
     closeMobileMenu();
+}
+
+// ==================== LOGOUT FUNCTION ====================
+async function handleLogout() {
+    if (!confirm('Are you sure you want to logout?')) return;
+    
+    try {
+        await window.supabaseClient.auth.signOut();
+        
+        // Clear local storage
+        localStorage.removeItem('adminSession');
+        sessionStorage.removeItem('adminAuthenticated');
+        
+        // Redirect to login
+        window.location.href = 'admin-login.html?logout=true';
+        
+    } catch (error) {
+        console.error('Logout error:', error);
+        showToast('Failed to logout', 'error');
+    }
 }
 
 // ==================== DASHBOARD ====================
